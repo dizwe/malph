@@ -1,0 +1,233 @@
+.policy-page {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding: 2rem 0;
+}
+
+.policy-page .container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.policy-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  background: white;
+  padding: 3rem 2rem;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.policy-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 1rem;
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.last-updated {
+  color: #718096;
+  font-size: 1rem;
+  font-style: italic;
+}
+
+.policy-content {
+  background: white;
+  border-radius: 20px;
+  padding: 3rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  line-height: 1.8;
+}
+
+.policy-section {
+  margin-bottom: 3rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.policy-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.policy-section h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #667eea;
+  display: inline-block;
+}
+
+.policy-section h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #4a5568;
+  margin: 1.5rem 0 1rem 0;
+}
+
+.policy-section h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #4a5568;
+  margin: 1rem 0 0.5rem 0;
+}
+
+.policy-section p {
+  color: #4a5568;
+  margin-bottom: 1rem;
+}
+
+.policy-section ul, .policy-section ol {
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.policy-section li {
+  color: #4a5568;
+  margin-bottom: 0.5rem;
+}
+
+.policy-section li strong {
+  color: #2d3748;
+  font-weight: 600;
+}
+
+.info-table, .delegation-table {
+  margin: 1.5rem 0;
+}
+
+.delegation-table table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.delegation-table th, .delegation-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.delegation-table th {
+  background: #f7fafc;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.delegation-table td {
+  color: #4a5568;
+}
+
+.contact-info, .contact-department {
+  background: #f7fafc;
+  padding: 2rem;
+  border-radius: 15px;
+  margin: 1.5rem 0;
+  border-left: 4px solid #667eea;
+}
+
+.responsible-person {
+  margin-top: 1rem;
+}
+
+.responsible-person ul, .contact-department ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.responsible-person li, .contact-department li {
+  background: white;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 8px;
+  border-left: 3px solid #667eea;
+}
+
+.policy-footer {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px solid #e2e8f0;
+  text-align: center;
+}
+
+.policy-footer p {
+  font-size: 1.1rem;
+  color: #4a5568;
+  margin-bottom: 2rem;
+}
+
+.contact-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.contact-btn {
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  color: white;
+  padding: 15px 30px;
+  border-radius: 50px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.contact-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+  color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .policy-page .container {
+    padding: 0 15px;
+  }
+  
+  .policy-header {
+    padding: 2rem 1rem;
+  }
+  
+  .policy-header h1 {
+    font-size: 2rem;
+  }
+  
+  .policy-content {
+    padding: 2rem 1.5rem;
+  }
+  
+  .policy-section h2 {
+    font-size: 1.3rem;
+  }
+  
+  .delegation-table {
+    overflow-x: auto;
+  }
+  
+  .delegation-table table {
+    min-width: 400px;
+  }
+  
+  .contact-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .contact-btn {
+    width: 200px;
+    justify-content: center;
+  }
+}
