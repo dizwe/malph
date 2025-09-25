@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Home from './pages/Home'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import TermsOfService from './pages/TermsOfService'
-import WalktenPage from './pages/WalktenPage'
+import OnermLogPage from './pages/OnermLogPage'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import './App.css'
@@ -15,7 +15,7 @@ function App() {
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/walkten" element={<WalktenPage />} />
+            <Route path="/onerm_log" element={<OnermLogPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
           </Routes>

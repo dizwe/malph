@@ -1,5 +1,5 @@
 import React from 'react'
-// import { Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import './Home.css'
 
 const Home: React.FC = () => {
@@ -72,7 +72,7 @@ const Home: React.FC = () => {
             </p>
           </div>
           <div className="project-grid">
-            <div className="project-card featured">
+            <Link to="/onerm_log" className="project-card featured" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="project-icon">🏋️</div>
               <h3>onerm Log</h3>
               <p>
@@ -93,7 +93,7 @@ const Home: React.FC = () => {
                 <span className="tag">기록</span>
                 <span className="tag">React Native</span>
               </div>
-            </div>
+            </Link>
             <div className="project-card coming-soon">
               <div className="project-icon">💡</div>
               <h3>다음 아이디어</h3>
