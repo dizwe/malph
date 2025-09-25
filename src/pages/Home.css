@@ -3,8 +3,8 @@
 }
 
 .hero {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, #ededed 0%, #bdbdbd 100%);
+  color: #222;
   padding: 80px 0;
   min-height: 60vh;
   display: flex;
@@ -29,7 +29,7 @@
 }
 
 .highlight {
-  background: linear-gradient(45deg, #ffd700, #ffed4a);
+  background: linear-gradient(45deg, #888, #222);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -57,6 +57,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
 }
+
 
 .cta-primary {
   background: linear-gradient(45deg, #ff6b6b, #ffa726);
@@ -324,13 +325,13 @@
 }
 
 .contact {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, #ededed 0%, #bdbdbd 100%);
+  color: #222;
   text-align: center;
 }
 
 .contact h2 {
-  color: white;
+  color: #222;
 }
 
 .contact p {
@@ -348,19 +349,20 @@
 }
 
 .contact-btn {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: #bdbdbd;
+  color: #222;
   padding: 15px 30px;
   border-radius: 50px;
   text-decoration: none;
   font-weight: 600;
   transition: all 0.3s ease;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid #888;
 }
 
 .contact-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.6);
+  background: #888;
+  border-color: #444;
+  color: #ededed;
   transform: translateY(-2px);
 }
 

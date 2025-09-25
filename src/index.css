@@ -2,8 +2,8 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   line-height: 1.6;
   font-weight: 400;
-  color: #333;
-  background-color: #ffffff;
+  color: #222;
+  background-color: #ededed;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -28,8 +28,8 @@ body {
   min-height: 100vh;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   line-height: 1.6;
-  color: #333;
-  background-color: #ffffff;
+  color: #222;
+  background-color: #ededed;
 }
 
 #root {
@@ -39,13 +39,13 @@ body {
 
 a {
   font-weight: 500;
-  color: #667eea;
+  color: #444;
   text-decoration: none;
   transition: color 0.3s ease;
 }
 
 a:hover {
-  color: #764ba2;
+  color: #000;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -62,11 +62,13 @@ button {
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
+  background: #d3d3d3;
+  color: #222;
   transition: all 0.3s ease;
 }
 
 button:focus,
 button:focus-visible {
-  outline: 2px solid #667eea;
+  outline: 2px solid #444;
   outline-offset: 2px;
 }

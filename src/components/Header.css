@@ -37,7 +37,7 @@
 }
 
 .logo-text {
-  background: linear-gradient(45deg, #667eea, #764ba2);
+  background: linear-gradient(45deg, #bdbdbd, #444444);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -59,14 +59,15 @@
   position: relative;
 }
 
+
 .nav-link:hover {
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
+  color: #444;
+  background: rgba(68, 68, 68, 0.08);
 }
 
 .nav-link.active {
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
+  color: #444;
+  background: rgba(68, 68, 68, 0.08);
 }
 
 @media (max-width: 768px) {

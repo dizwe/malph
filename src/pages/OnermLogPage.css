@@ -191,19 +191,19 @@
 
 /* Download Section */
 .download-section {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #ededed 0%, #bdbdbd 100%);
   border-radius: 20px;
   padding: 60px 40px;
   margin-bottom: 40px;
   text-align: center;
-  color: white;
+  color: #222;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
 .download-section h2 {
   font-size: 2.5rem;
   margin-bottom: 20px;
-  color: white;
+  color: #222;
 }
 
 .download-section p {
@@ -219,12 +219,15 @@
   border-radius: 25px;
   font-weight: 600;
   font-size: 0.9rem;
+  background: #bdbdbd;
+  color: #222;
+  border: 2px solid #888;
 }
 
 .status-badge.in-progress {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: #888;
+  color: #ededed;
+  border: 2px solid #444;
 }
 
 /* Contact Section */

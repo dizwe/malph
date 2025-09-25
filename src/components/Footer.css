@@ -1,6 +1,6 @@
 .footer {
-  background: #2d3748;
-  color: white;
+  background: #222;
+  color: #ededed;
   padding: 3rem 0 1rem;
 }
 
@@ -20,7 +20,7 @@
 .footer-section h4 {
   font-size: 1.2rem;
   margin-bottom: 1rem;
-  color: #e2e8f0;
+  color: #bdbdbd;
 }
 
 .footer-logo {
@@ -37,14 +37,14 @@
 }
 
 .footer-logo .logo-text {
-  background: linear-gradient(45deg, #667eea, #764ba2);
+  background: linear-gradient(45deg, #bdbdbd, #444444);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .footer-description {
-  color: #a0aec0;
+  color: #888;
   line-height: 1.6;
 }
 
@@ -58,28 +58,28 @@
 }
 
 .footer-links a {
-  color: #a0aec0;
+  color: #888;
   text-decoration: none;
   transition: color 0.3s ease;
 }
 
 .footer-links a:hover {
-  color: #667eea;
+  color: #444;
 }
 
 .contact-info p {
-  color: #a0aec0;
+  color: #888;
   margin-bottom: 0.5rem;
 }
 
 .footer-bottom {
-  border-top: 1px solid #4a5568;
+  border-top: 1px solid #444;
   padding-top: 1rem;
   text-align: center;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: #718096;
+  color: #888;
 }
 
 @media (max-width: 768px) {
