@@ -9,7 +9,7 @@ import './App.css'
 
 function App() {
   return (
-    <Router basename="/">
+    <Router basename="/malph/">
       <div className="app">
         <Header />
         <main className="main-content">
