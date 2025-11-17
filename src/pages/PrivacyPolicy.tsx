@@ -14,7 +14,7 @@ const PrivacyPolicy: React.FC = () => {
           <section className="policy-section">
             <h2>1. 개인정보 수집 및 이용목적</h2>
             <p>
-              malph("회사" 또는 "서비스")는 다음의 목적을 위하여 개인정보를 처리합니다:
+              alonestandsmalcolm("회사")이 운영하는 malph 브랜드의 앱들은 다음의 목적을 위하여 개인정보를 처리합니다:
             </p>
             <ul>
               <li>서비스 제공 및 계약의 이행</li>
