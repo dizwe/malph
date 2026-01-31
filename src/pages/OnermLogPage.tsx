@@ -1,7 +1,31 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import './OnermLogPage.css'
 
 const OnermLogPage: React.FC = () => {
+  const [device, setDevice] = useState<'ios' | 'android' | 'web'>('web');
+
+  useEffect(() => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    if (/iphone|ipad|ipod/.test(userAgent)) {
+      setDevice('ios');
+    } else if (/android/.test(userAgent)) {
+      setDevice('android');
+    }
+  }, []);
+
+  const handleDownload = () => {
+    const APP_STORE_URL = 'https://apps.apple.com/app/idYOUR_APP_ID'; // 실제 ID로 수정 필요
+    const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=YOUR_PACKAGE_NAME'; // 실제 패키지명으로 수정 필요
+
+    if (device === 'ios') {
+      window.location.href = APP_STORE_URL;
+    } else if (device === 'android') {
+      window.location.href = PLAY_STORE_URL;
+    } else {
+      alert('모바일 기기에서 접속하시면 앱을 설치하실 수 있습니다!');
+    }
+  };
+
   return (
     <div className="onerm-log-page">
       <div className="container">
@@ -62,12 +86,16 @@ const OnermLogPage: React.FC = () => {
 
         <section className="download-section">
           <div className="download-content">
-              <h2>출시 준비 중입니다!</h2>
+              <h2>지금 바로 시작해보세요!</h2>
               <p>
-                아직 앱이 출시되지 않았으며, 다운로드 링크는 추후 제공될 예정입니다.
+                앱을 설치하고 자신의 성장을 기록하세요.
               </p>
-              <div className="development-status">
-                <span className="status-badge thinking">출시 준비중</span>
+              <div className="download-buttons">
+                <button className="download-btn main-btn" onClick={handleDownload}>
+                  {device === 'ios' ? 'App Store에서 다운로드' : 
+                   device === 'android' ? 'Play Store에서 다운로드' : 
+                   '앱 다운로드 하기'}
+                </button>
               </div>
           </div>
         </section>
