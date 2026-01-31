@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.malph.onerm_log",
+    "sha256_cert_fingerprints": ["30:07:2A:42:11:47:BE:7E:41:14:BD:DE:F0:47:03:23:0F:9C:87:3B:99:08:69:D5:E5:F2:9C:28:22:8F:5F:75","C7:EA:F9:D9:02:D7:28:DD:74:31:37:C8:44:ED:8E:63:30:47:38:1A:D4:D4:E1:C5:9C:3A:70:9E:B5:C5:89:73"]
+  }
+}]
