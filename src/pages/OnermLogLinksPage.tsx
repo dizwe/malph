@@ -1,9 +1,22 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import './OnermLogLinksPage.css'
 
 const OnermLogLinksPage: React.FC = () => {
   const APP_STORE_URL = 'https://apps.apple.com/app/id6755926206';
   const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.malph.onerm_log';
+
+  useEffect(() => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    
+    // iOS 리다이렉트
+    if (/iphone|ipad|ipod/.test(userAgent)) {
+      window.location.href = APP_STORE_URL;
+    } 
+    // 안드로이드 리다이렉트
+    else if (/android/.test(userAgent)) {
+      window.location.href = PLAY_STORE_URL;
+    }
+  }, []);
 
   return (
     <div className="onerm-log-links-page">
