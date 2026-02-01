@@ -134,11 +134,12 @@
 @media (max-width: 480px) {
   .onerm-log-links-page {
     padding: 1rem;
+    background-color: var(--background-color, #111);
   }
   
   .links-container {
     padding: 2rem 1.5rem;
     box-shadow: none;
-    background: transparent;
+    /* background: transparent; */
   }
 }
