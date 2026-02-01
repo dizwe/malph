@@ -1,0 +1,110 @@
+.onerm-log-links-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 2rem;
+  background-color: var(--background-color, #f9f9f9);
+}
+
+.links-container {
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  background: white;
+  padding: 3rem 2rem;
+  border-radius: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.links-header {
+  margin-bottom: 2.5rem;
+}
+
+.links-header .app-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.links-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.links-header p {
+  color: #666;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.download-buttons-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.download-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.8rem 1.5rem;
+  border-radius: 12px;
+  text-decoration: none;
+  color: white;
+  transition: transform 0.2s, opacity 0.2s;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.download-link:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+.download-link:active {
+  transform: translateY(0);
+}
+
+.download-link.ios {
+  background-color: #000;
+}
+
+.download-link.android {
+  background-color: #000; /* Google Play also uses black often for these buttons */
+}
+
+.download-link .icon {
+  font-size: 1.8rem;
+  margin-right: 12px;
+}
+
+.download-link .text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+
+.download-link .small {
+  font-size: 0.7rem;
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.download-link .large {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .onerm-log-links-page {
+    padding: 1rem;
+  }
+  
+  .links-container {
+    padding: 2rem 1.5rem;
+    box-shadow: none;
+    background: transparent;
+  }
+}
