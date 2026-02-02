@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence, type Variants } from 'framer-motion'
+import React, { useState, useEffect, useRef } from 'react'
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, type Variants } from 'framer-motion'
 import '../pages/Home.css'
 
 const texts = [
@@ -125,24 +125,76 @@ const GlitchChar_BACKUP: React.FC<{ char: string; index: number; sentenceIndex: 
 ========================================================================== */
 
 // [현재 적용된 효과] 무중력 일렁임 (Floating Skew) - Windy 날씨용
-// WindyChar: 바람에 날리는 듯한 사인파 부유 효과
-const WindyChar: React.FC<{ char: string; index: number; sentenceIndex: number }> = ({ char, index, sentenceIndex }) => {
+// WindyChar: 바람에 날리는 듯한 사인파 부유 효과 + 마우스 인터랙션
+const WindyChar: React.FC<{ 
+    char: string;
+    sentenceIndex: number;
+    mouseX: any;
+    mouseY: any;
+}> = ({ char, sentenceIndex, mouseX, mouseY }) => {
+    const charRef = useRef<HTMLSpanElement>(null)
+    
+    // [마우스 반응] 실제 DOM 위치를 한 번만 저장 (floating 중에도 이 기준 위치 사용)
+    const [basePosition, setBasePosition] = useState({ x: 0, y: 0 })
+    
+    useEffect(() => {
+        // visible 애니메이션이 종료된 후 한 번만 위치 저장
+        const timer = setTimeout(() => {
+            if (charRef.current) {
+                const rect = charRef.current.getBoundingClientRect()
+                setBasePosition({
+                    x: rect.left + rect.width / 2,
+                    y: rect.top + rect.height / 2
+                })
+            }
+        }, 1200) // visible 애니메이션 1초 + 여유 0.2초
+        
+        return () => clearTimeout(timer)
+    }, [sentenceIndex]) // sentenceIndex가 바꽈 때마다 새로 계산
+    
+    // [Push Away 효과] 마우스 반대 방향으로 밀림
+    const pushX = useTransform([mouseX], ([mx]) => {
+        if (basePosition.x === 0) return 0
+        const dx = basePosition.x - (mx as number)
+        const dist = Math.sqrt(dx * dx)
+        if (dist > 40 || dist === 0 || !isFinite(dist)) return 0
+        return (dx / dist) * 100 * (1 - dist / 200)
+    })
+    
+    const pushY = useTransform([mouseY], ([my]) => {
+        if (basePosition.y === 0) return 0
+        const dy = basePosition.y - (my as number)
+        const dist = Math.sqrt(dy * dy)
+        if (dist > 40 || dist === 0 || !isFinite(dist)) return 0
+        return (dy / dist) * 0 * (1 - dist / 200)
+    })
+    
+    // [회전 효과] Y축 회전
+    const rotateY = useTransform([mouseX], ([mx]) => {
+        if (basePosition.x === 0) return 0
+        const dx = (mx as number) - basePosition.x
+        if (Math.abs(dx) > 100 || !isFinite(dx)) return 0
+        return dx * 0.1
+    })
+    
+    // [스프링으로 부드럽게]
+    const smoothPushX = useSpring(pushX, { stiffness: 200, damping: 50 })
+    const smoothPushY = useSpring(pushY, { stiffness: 200, damping: 50 })
+    const smoothRotateY = useSpring(rotateY, { stiffness: 100, damping: 80 })
+    
     // [바람 강도] 랜덤으로 바람의 세기 결정 (0.7~1.3)
-    const windStrength = 0.7 + Math.random() * 0.6
+    const windStrength = 1 + Math.random() * 3
     
     // [랜덤 딜레이] 순차가 아닌 완전 랜덤으로 (무중력 느낌)
     const randomDelay = Math.random() * 0.8
     
     // [랜덤 Skew 범위] -5deg ~ 10deg
-    const randomSkew = -10 + Math.random() * 15
+    const randomSkew = -5 + Math.random() * 15
     
     // [랜덤 시작 위치] 화면 여러 곳에서 떠오르는 느낌
     const randomStartY = -30 + Math.random() * 60 // -30 ~ 30
     const randomStartX = -40 + Math.random() * 80 // -40 ~ 40
     const randomStartSkew = -15 + Math.random() * 30 // -15 ~ 15
-    
-    // [Floating 랜덤 시작점] 문장마다 다른 사인파 위치에서 시작
-    const floatingStartPhase = Math.random() // 0~1 사이 랜덤 위상
     
     const windyVariants: Variants = {
         // [랜덤 시작] 화면 곳곳에서 페이드인
@@ -160,35 +212,33 @@ const WindyChar: React.FC<{ char: string; index: number; sentenceIndex: number }
             skewX: 0,
             transition: {
                 delay: randomDelay,
-                duration: 1.6, // 더 부드럽게
+                duration: 1,
                 ease: "easeOut"
             }
         },
         // [사인파 부유] 무한 반복되는 위아래 + 좌우 일렁임
         floating: {
-            y: [0, -8 * windStrength, 0, 6 * windStrength, 0],
-            x: [0, 4 * windStrength, 0, -3 * windStrength, 0],
+            y: [0, -2 * windStrength, 0, 2 * windStrength, 0],
+            x: [0, 7 * windStrength, 0, -1 * windStrength, 0],
             skewX: [0, randomSkew * 0.3, 0, -randomSkew * 0.2, 0],
             transition: {
                 delay: randomDelay,
-                duration: 3 + Math.random() * 2, // 3~5초 (랜덤 속도)
+                duration: 3 + Math.random() * 2,
                 repeat: Infinity,
                 repeatType: "loop",
-                ease: "linear", // linear로 변경하여 멈춤 현상 방지
+                ease: "linear",
             }
         },
         // [Exit: 지속적인 움직임 + 페이드아웃] 투명해진 후에도 계속 움직임
         exit: {
-            // Opacity는 빠르게 사라지지만, 움직임은 더 길게 지속
             opacity: [null, null, 0.7, 0.4, 0.2, 0, 0, 0],
-            // 투명해진 후에도 계속 부유하며 움직임
             y: [
                 null, 
                 null, 
                 -1 * windStrength, 
                 0.5 * windStrength, 
                 -0.3 * windStrength,
-                0.8 * windStrength,  // 투명해진 후에도 움직임 계속
+                0.8 * windStrength,
                 -1.2 * windStrength,
                 2 * windStrength
             ],
@@ -198,7 +248,7 @@ const WindyChar: React.FC<{ char: string; index: number; sentenceIndex: number }
                 0.5 * windStrength, 
                 -0.3 * windStrength, 
                 0.5 * windStrength,
-                -0.8 * windStrength, // 투명해진 후에도 움직임 계속
+                -0.8 * windStrength,
                 1 * windStrength,
                 -1.5 * windStrength
             ],
@@ -208,40 +258,38 @@ const WindyChar: React.FC<{ char: string; index: number; sentenceIndex: number }
                 randomSkew * 0.05, 
                 -randomSkew * 0.03, 
                 randomSkew * 0.04,
-                -randomSkew * 0.06, // 투명해진 후에도 움직임 계속
+                -randomSkew * 0.06,
                 randomSkew * 0.08,
                 0
             ],
             transition: {
                 delay: 0,
-                duration: 4.0, // 더 길게 지속
+                duration: 4.0,
                 ease: "linear",
-                // Opacity는 0.6초쯤 사라지지만, 움직임은 4초 동안 계속
                 times: [0, 0.1, 0.25, 0.4, 0.5, 0.6, 0.8, 1.0]
             }
         }
     }
 
     return (
-        <span style={{
-            display: 'inline-block',
-            minWidth: char === ' ' ? '0.3em' : 'auto',
-            whiteSpace: 'pre',
-            verticalAlign: 'bottom',
-            willChange: 'transform', // GPU 가속
-        }}>
+        <span
+            ref={charRef}
+            style={{
+                display: 'inline-block',
+                minWidth: char === ' ' ? '0.3em' : 'auto',
+                whiteSpace: 'pre',
+                verticalAlign: 'bottom',
+            }}
+        >
             <motion.span
                 key={`${char}-${sentenceIndex}`}
                 initial="hidden"
                 animate="visible"
                 exit="exit"
                 variants={windyVariants}
-                onAnimationComplete={(definition) => {
-                    // visible 완료 후 floating 시작
-                }}
                 style={{ 
                     display: 'inline-block',
-                    willChange: 'transform', // GPU 가속
+                    willChange: 'transform',
                 }}
             >
                 <motion.span
@@ -249,6 +297,9 @@ const WindyChar: React.FC<{ char: string; index: number; sentenceIndex: number }
                     variants={windyVariants}
                     style={{ 
                         display: 'inline-block',
+                        x: smoothPushX,
+                        y: smoothPushY,
+                        rotateY: smoothRotateY,
                     }}
                 >
                     {char}
@@ -260,38 +311,52 @@ const WindyChar: React.FC<{ char: string; index: number; sentenceIndex: number }
 
 const TextTicker: React.FC = () => {
     const [index, setIndex] = useState(0)
+    
+    // [마우스 인터랙션] 전역 마우스 위치 추적
+    const mouseX = useMotionValue(typeof window !== 'undefined' ? window.innerWidth / 2 : 0)
+    const mouseY = useMotionValue(typeof window !== 'undefined' ? window.innerHeight / 2 : 0)
+    const [isMobile, setIsMobile] = useState(false)
+
+    useEffect(() => {
+        // 모바일 감지
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window)
+        }
+        checkMobile()
+        window.addEventListener('resize', checkMobile)
+        
+        // 데스크톱에서만 마우스 이벤트 활성화
+        if (!isMobile) {
+            const handleMouseMove = (e: MouseEvent) => {
+                mouseX.set(e.clientX)
+                mouseY.set(e.clientY)
+            }
+            window.addEventListener('mousemove', handleMouseMove)
+            
+            return () => {
+                window.removeEventListener('mousemove', handleMouseMove)
+                window.removeEventListener('resize', checkMobile)
+            }
+        }
+        
+        return () => {
+            window.removeEventListener('resize', checkMobile)
+        }
+    }, [isMobile, mouseX, mouseY])
 
     useEffect(() => {
         const timer = setInterval(() => {
             setIndex((prevIndex) => (prevIndex + 1) % texts.length)
-        }, 5000) // [변환 주기] 5초마다 변경
+        }, 8000) // [변환 주기] 5초마다 변경
 
         return () => clearInterval(timer)
     }, [])
 
     const currentChars = texts[index].split('')
 
-    // [Windy Mode용] 컨테이너 부유 효과 - 바람에 흔들림
-    const containerVariants: Variants = {
-        initial: { x: 0, y: 0, skewX: 0 },
-        floating: {
-            x: [0, 3, 0, -2, 0],
-            y: [0, -2, 0, 2, 0],
-            skewX: [0, 1, 0, -1, 0],
-            transition: {
-                duration: 4,
-                repeat: Infinity,
-                ease: "easeInOut"
-            }
-        }
-    }
-
     return (
-        <motion.div 
+        <div 
             className="malph-works" 
-            initial="initial"
-            animate="floating"
-            variants={containerVariants}
             style={{
                 overflow: 'visible', // Windy 효과가 잘리지 않도록
                 height: '1.2em',
@@ -305,36 +370,30 @@ const TextTicker: React.FC = () => {
                 zIndex: 999
             }}
         >
-            <div style={{ 
-                position: 'relative', 
-                width: '100%', 
-                height: '100%',
-                display: 'flex',
-                alignItems: 'flex-end'
-            }}>
-                <AnimatePresence mode="sync">
-                    <motion.div
-                        key={index}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 1 }} // 컨테이너는 투명도 유지
-                        transition={{ duration: 0 }}
-                        style={{
-                            position: 'absolute',
-                            left: 0,
-                            bottom: 0,
-                            display: 'flex',
-                            alignItems: 'flex-end'
-                        }}
-                        aria-label={texts[index]}
-                    >
-                        {currentChars.map((char, i) => (
-                            <WindyChar key={`${char}-${i}-${index}`} char={char} index={i} sentenceIndex={index} />
-                        ))}
-                    </motion.div>
-                </AnimatePresence>
-            </div>
-        </motion.div>
+            <AnimatePresence mode="sync">
+                <div
+                    key={index}
+                    style={{
+                        position: 'absolute',
+                        left: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'flex-end'
+                    }}
+                    aria-label={texts[index]}
+                >
+                    {currentChars.map((char, i) => (
+                        <WindyChar 
+                            key={`${char}-${i}-${index}`} 
+                            char={char}
+                            sentenceIndex={index}
+                            mouseX={mouseX}
+                            mouseY={mouseY}
+                        />
+                    ))}
+                </div>
+            </AnimatePresence>
+        </div>
     )
 }
 

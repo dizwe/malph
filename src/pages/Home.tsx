@@ -44,9 +44,18 @@ const Home: React.FC = () => {
     <div className="home">
       <nav className="home-nav">
         <div className="nav-left">
-          {weather.data
-            ? `Seoul, ${weather.data.weather[0].main} ${Math.round(weather.data.main.temp)}°C ${weather.data.main.humidity}% ${weather.data.wind.speed}m/s`
-            : 'Seoul, Loading...'}
+          {weather.data ? (
+            <>
+              <div style={{ fontSize: '20px'}}>Seoul, {weather.data.weather[0].main}</div>
+              <div style={{ display: 'flex', gap: '16px', fontSize: '14px', fontWeight: '300', marginTop: '-2px' }}>
+                <span>{Math.round(weather.data.main.temp)}°C</span>
+                <span>{weather.data.main.humidity}%</span>
+                <span>{weather.data.wind.speed}m/s</span>
+              </div>
+            </>
+          ) : (
+            'Seoul, Loading...'
+          )}
         </div>
         <div className="nav-right">Say Hi</div>
       </nav>
