@@ -124,7 +124,9 @@ const GlitchChar_BACKUP: React.FC<{ char: string; index: number; sentenceIndex: 
 
 ========================================================================== */
 
-// [현재 적용된 효과] 무중력 일렁임 (Floating Skew) - Windy 날씨용
+/* 
+===========================================================================
+[보관용 코드] 무중력 일렁임 (Floating Skew) - Windy 날씨용
 // WindyChar: 바람에 날리는 듯한 사인파 부유 효과 + 마우스 인터랙션
 const WindyChar: React.FC<{ 
     char: string;
@@ -308,41 +310,115 @@ const WindyChar: React.FC<{
         </span>
     )
 }
+===========================================================================
+*/
+
+// [현재 적용된 효과] 글리치 (Glitch) 효과
+const GlitchChar: React.FC<{ char: string; index: number; sentenceIndex: number }> = ({ char, index, sentenceIndex }) => {
+    // [랜덤 딜레이] 0~0.5초 사이 랜덤 (더 긴 범위로 불규칙성 증가)
+    const randomDelay = Math.random() * 0.5
+    
+    // [Clip-path 슬라이싱] 5개 조각으로 나누기 (0%, 20%, 40%, 60%, 80%, 100%)
+    const slices = [
+        'inset(0% 0% 80% 0%)',    // 상단 20%
+        'inset(20% 0% 60% 0%)',   // 두번째 조각
+        'inset(40% 0% 40% 0%)',   // 중간 조각
+        'inset(60% 0% 20% 0%)',   // 네번째 조각
+        'inset(80% 0% 0% 0%)',    // 하단 20%
+    ]
+    
+    // 글리치 효과 정의
+    const glitchVariants: Variants = {
+        hidden: { opacity: 0, y: 0, skewX: 0, x: 0 },
+        visible: () => ({
+            opacity: 1,
+            y: 0,
+            skewX: 0,
+            x: 0,
+            textShadow: "0px 0px 0px rgba(0,0,0,0)",
+            transition: {
+                delay: randomDelay,
+                duration: 0.001
+            }
+        }),
+        glitch: () => ({
+            // [깜빡임 강도] 더욱 극단적으로 (0.2까지 떨어짐)
+            opacity: [1, 0.4, 1, 0.6, 0.2, 1, 0.8, 1],
+            
+            // [비틀림 강도] 극대화 (-35 ~ +35도)
+            skewX: [0, 35, -30, 20, -35, 15, -10, 0],
+            
+            // [위아래 떨림] 강화 (-10 ~ +10px)
+            y: [0, -8, 10, -5, 8, -3, 2, 0],
+            
+            // [좌우 떨림] 강화 (-12 ~ +12px)
+            x: [0, 10, -12, 8, -6, 10, -4, 0],
+            
+            // [RGB Split 극대화] 5~10px 분리, 더 강한 색상
+            textShadow: [
+                "0px 0px 0px rgba(0,0,0,0)",
+                "-8px 0px 0px rgba(255,0,0,0.9), 8px 0px 0px rgba(0,255,255,0.9)", // 극강 RGB Split
+                "10px 3px 0px rgba(255,0,0,0.95), -7px -3px 0px rgba(0,255,255,0.95)",
+                "-6px 2px 0px rgba(255,0,0,0.85), 9px -2px 0px rgba(0,255,255,0.85)",
+                "7px -1px 0px rgba(255,0,0,0.8), -8px 1px 0px rgba(0,255,255,0.8)",
+                "-5px 0px 0px rgba(255,0,0,0.7), 6px 0px 0px rgba(0,255,255,0.7)",
+                "3px 1px 0px rgba(255,0,0,0.6), -4px -1px 0px rgba(0,255,255,0.6)",
+                "0px 0px 0px rgba(0,0,0,0)"
+            ],
+            
+            // [Clip-path Slicing] 조각들이 제각각 움직이는 효과
+            clipPath: [
+                'inset(0% 0% 0% 0%)',
+                slices[Math.floor(Math.random() * 5)],
+                slices[Math.floor(Math.random() * 5)],
+                slices[Math.floor(Math.random() * 5)],
+                'inset(0% 0% 0% 0%)',
+                slices[Math.floor(Math.random() * 5)],
+                'inset(0% 0% 0% 0%)',
+            ],
+            
+            transition: {
+                delay: randomDelay,
+                // [단발적 글리치] 짧고 강렬하게 한 번만 실행
+                duration: 0.15, // 0.3초로 짧게
+                times: [0, 0.1, 0.2, 0.35, 0.5, 0.65, 0.8, 1.0], // 더 빠른 리듬
+                ease: "linear",
+            }
+        })
+    }
+
+    return (
+        <span style={{
+            display: 'inline-block',
+            minWidth: char === ' ' ? '0.3em' : 'auto',
+            whiteSpace: 'pre',
+            verticalAlign: 'bottom',
+            position: 'relative',
+        }}>
+            <motion.span
+                key={`${char}-${sentenceIndex}`}
+                custom={index}
+                initial="hidden"
+                animate={["visible", "glitch"]}
+                variants={glitchVariants}
+                onAnimationComplete={() => {
+                    // 글리치 애니메이션 완료 후 클래스 제거하여 잔상 효과 종료
+                }}
+                style={{ 
+                    display: 'inline-block',
+                    position: 'relative',
+                }}
+                className={`glitch-char glitch-active-${sentenceIndex}`}
+                data-text={char}
+            >
+                {char}
+            </motion.span>
+        </span>
+    )
+}
 
 const TextTicker: React.FC = () => {
     const [index, setIndex] = useState(0)
-    
-    // [마우스 인터랙션] 전역 마우스 위치 추적
-    const mouseX = useMotionValue(typeof window !== 'undefined' ? window.innerWidth / 2 : 0)
-    const mouseY = useMotionValue(typeof window !== 'undefined' ? window.innerHeight / 2 : 0)
-    const [isMobile, setIsMobile] = useState(false)
-
-    useEffect(() => {
-        // 모바일 감지
-        const checkMobile = () => {
-            setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window)
-        }
-        checkMobile()
-        window.addEventListener('resize', checkMobile)
-        
-        // 데스크톱에서만 마우스 이벤트 활성화
-        if (!isMobile) {
-            const handleMouseMove = (e: MouseEvent) => {
-                mouseX.set(e.clientX)
-                mouseY.set(e.clientY)
-            }
-            window.addEventListener('mousemove', handleMouseMove)
-            
-            return () => {
-                window.removeEventListener('mousemove', handleMouseMove)
-                window.removeEventListener('resize', checkMobile)
-            }
-        }
-        
-        return () => {
-            window.removeEventListener('resize', checkMobile)
-        }
-    }, [isMobile, mouseX, mouseY])
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -358,7 +434,7 @@ const TextTicker: React.FC = () => {
         <div 
             className="malph-works" 
             style={{
-                overflow: 'visible', // Windy 효과가 잘리지 않도록
+                overflow: 'visible',
                 height: '1.2em',
                 display: 'flex',
                 alignItems: 'flex-end',
@@ -383,12 +459,11 @@ const TextTicker: React.FC = () => {
                     aria-label={texts[index]}
                 >
                     {currentChars.map((char, i) => (
-                        <WindyChar 
+                        <GlitchChar 
                             key={`${char}-${i}-${index}`} 
                             char={char}
+                            index={i}
                             sentenceIndex={index}
-                            mouseX={mouseX}
-                            mouseY={mouseY}
                         />
                     ))}
                 </div>

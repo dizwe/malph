@@ -54,12 +54,12 @@ const Home: React.FC = () => {
               </div>
             </>
           ) : (
-            'Seoul, Loading...'
+            <div style={{ fontSize: '20px'}}>Seoul, Bzzzzzt...</div>
           )}
         </div>
         <div className="nav-right">Say Hi</div>
       </nav>
-      <GridBackground gridSize={360} lineColor="#EBEBEB" backgroundColor="#f7f7f7" />
+      <GridBackground tileSize={360} tileColor="#f7f7f7" backgroundColor="#EBEBEB" />
       <TextTicker />
 
       {/* Weather data will be used for design in next steps */}
