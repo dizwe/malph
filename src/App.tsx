@@ -11,10 +11,11 @@ import './App.css'
 function AppContent() {
   const location = useLocation()
   const isLinksPage = location.pathname.startsWith('/links/onerm_log')
+  const isHomePage = location.pathname === '/'
 
   return (
     <div className="app">
-      {!isLinksPage && <Header />}
+      {!isLinksPage && !isHomePage && <Header />}
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Home />} />
@@ -24,7 +25,7 @@ function AppContent() {
           <Route path="/terms-of-service" element={<TermsOfService />} />
         </Routes>
       </main>
-      {!isLinksPage && <Footer />}
+      {!isLinksPage && !isHomePage && <Footer />}
     </div>
   )
 }
