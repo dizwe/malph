@@ -42,6 +42,26 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
     const WIDTH_PAUSE_DURATION_MIN = 12.0 // 가로 멈춤 시간 최소값 (초)
     const WIDTH_PAUSE_DURATION_MAX = 14.0 // 가로 멈춤 시간 최대값 (초)
     const ROW_CASCADE_DELAY = 0.1   // 위에서 아래로 전이되는 지연 시간 (초/행)
+    
+    // ===== Sunny Mode 타일 효과 조절 파라미터 =====
+    // � 빳be3한 금속 타일 + 스프링 인터렉션
+    const SUNNY_TILT_POWER = 1.4     // 회전 강도 (0.3~0.8) - 강철판처럼 빳빳하게
+    const SUNNY_Z_LIFT = 70.0       // Z축 들림 높이 - 타일 사이로 태양이 보임
+    const SUNNY_SNAP_POWER = 5.0     // 스냅 반응 속도 (4.0~6.0) - '착' 감기는 순간 가속도
+    const SUNNY_SHADOW_STRENGTH = 0.6  // 그림자 강도 (0.2~0.4) - 각도 대비 강화
+    const SUNNY_REACTION_RANGE = 10 // 반응 범위 (unitTileSize 배수) - 마우스 근처 타일들이 반응
+    const SUNNY_TILE_OPACITY = 0.1  // 타일 투명도 (0.95~1.0) - 태양이 살짝 비치게
+    const SUNNY_MAX_ROTATION = 0.56  // 최대 회전각 (라디안, 약 26도) - 판이 사라지지 않게 제한
+    const SUNNY_DEAD_ZONE = 0.0      // 중앙 데드존 비율 (0~1) - 0으로 설정하여 모든 영역 반응
+    const SUN_DRIFT_RANGE = Math.min(viewport.width, viewport.height) * 0.1 // 태양 드리프트 반경
+    const SUN_DRIFT_INTERVAL_MIN = 2.0  // 드리프트 방향 전환 최소 간격 (초)
+    const SUN_DRIFT_INTERVAL_MAX = 3.0  // 드리프트 방향 전환 최대 간격 (초)
+    
+    // 스프링 물리 파라미터 - 단단한 금속 자석 물리
+    const SPRING_STIFFNESS = 0.4     // 스프링 강성 - 빳빳한 힘 (0.2~0.4)
+    const SPRING_DAMPING = 0.4       // 스프링 감쇠 - 출렁임 제어 (0.6~0.8)
+    const VELOCITY_SLEEP_THRESHOLD = 0.001  // 속도 임계값 - 작을수록 빨리 멈춤
+    // ===========================================
     // ================================
     
     // [동적 딜레이 범위] 시간에 따라 변화하는 딜레이 범위
@@ -49,6 +69,13 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
         current: DELAY_RANGE_MIN + Math.random() * (DELAY_RANGE_MAX - DELAY_RANGE_MIN),  // 현재 딜레이 범위
         timer: 0  // 변경 타이머
     })
+    
+    // [스프링 애니메이션] 각 타일의 현재 회전/위치 상태 저장
+    const tileStatesRef = useRef<Array<{
+        rotX: number
+        rotY: number
+        offsetZ: number
+    }> | null>(null)
     
     // [Rain 애니메이션 상태] 각 타일의 애니메이션 진행 상태 추적
     const rainStateRef = useRef<{
@@ -87,12 +114,13 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
         pulsePhase: 0
     })
     const sunMeshRef = useRef<THREE.Mesh>(null)
+    const sunDriftRef = useRef({
+        current: new THREE.Vector2(0, 0),
+        target: new THREE.Vector2(0, 0),
+        timer: 0,
+        duration: SUN_DRIFT_INTERVAL_MIN + Math.random() * (SUN_DRIFT_INTERVAL_MAX - SUN_DRIFT_INTERVAL_MIN)
+    })
     
-    // [타일 상태] 각 타일의 들림 상태 (그림자 계산용)
-    const tileStateRef = useRef<{
-        offsetZ: number[]  // 각 타일의 Z축 들림 값
-    }>({ offsetZ: [] })
-
     // Safety check for zero size to avoid Infinity
     if (size.width === 0 || size.height === 0) return null
     
@@ -106,7 +134,7 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
     }, [gl])
 
     // Calculate tiles based on viewport size
-    const { count, updateInstances } = useMemo(() => {
+    const { count, cols, rows, tileWorldSize, onePixelInWorld, pixelToUnit, startX, startY, unitTileSize, updateInstances } = useMemo(() => {
         // Convert pixel values to world units
         const pixelToUnit = viewport.width / size.width
         
@@ -116,7 +144,7 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
         // 전체 칸 크기 (360px)
         const unitTileSize = tileSize * pixelToUnit
         
-        // 실제 타일 크기 = (전체 칸 크기) - (1px에 해당하는 월드 단위)
+        // 실제 타일 크기 = 격자 빡빡하게 붙임
         const tileWorldSize = unitTileSize - onePixelInWorld
         
         const width = viewport.width
@@ -127,6 +155,9 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
         const rows = Math.ceil(height / unitTileSize) + 2
 
         const count = cols * rows
+        
+        const startX = -Math.floor(cols / 2) * unitTileSize
+        const startY = -Math.floor(rows / 2) * unitTileSize
 
         return {
             count,
@@ -135,14 +166,12 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
             tileWorldSize,
             onePixelInWorld,
             pixelToUnit,
-            startX: -Math.floor(cols / 2) * unitTileSize,
-            startY: -Math.floor(rows / 2) * unitTileSize,
+            startX,
+            startY,
             unitTileSize,
             updateInstances: (mesh: THREE.InstancedMesh) => {
                 // [기본 배치만 수행] 가로폭은 rain 애니메이션에서 적용
                 const tempObject = new THREE.Object3D()
-                const startX = -Math.floor(cols / 2) * unitTileSize
-                const startY = -Math.floor(rows / 2) * unitTileSize
                 
                 let idx = 0
                 for (let col = 0; col < cols; col++) {
@@ -166,20 +195,6 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
                 mesh.instanceMatrix.needsUpdate = true
             }
         }
-    }, [viewport.width, viewport.height, size.width, tileSize])
-    
-    const { cols, rows, tileWorldSize, onePixelInWorld, pixelToUnit, startX, startY, unitTileSize } = useMemo(() => {
-        const pixelToUnit = viewport.width / size.width
-        const unitTileSize = tileSize * pixelToUnit
-        const onePixelInWorld = 1 * pixelToUnit
-        const tileWorldSize = unitTileSize - onePixelInWorld
-        const width = viewport.width
-        const height = viewport.height
-        const cols = Math.ceil(width / unitTileSize) + 2
-        const rows = Math.ceil(height / unitTileSize) + 2
-        const startX = -Math.floor(cols / 2) * unitTileSize
-        const startY = -Math.floor(rows / 2) * unitTileSize
-        return { cols, rows, tileWorldSize, onePixelInWorld, pixelToUnit, startX, startY, unitTileSize }
     }, [viewport.width, viewport.height, size.width, tileSize])
     
     // [열별 고유 시드 초기화] cols가 변경될 때마다 새로운 랜덤 시드 생성
@@ -213,6 +228,11 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
 
     useLayoutEffect(() => {
         if (meshRef.current) {
+            // [중요] 자동 행렬 업데이트 차단 - 수동 행렬을 지키기 위함
+            meshRef.current.matrixAutoUpdate = false
+            // [중요] 동적 드로우 모드로 설정 - 매 프레임 업데이트 최적화
+            meshRef.current.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+            
             // [열 단위 너비 초기화] 각 열의 초기 너비를 1.0으로 설정
             const columnWidths = Array.from({ length: cols }, () => 1.0)
             rainStateRef.current.columnWidths = columnWidths
@@ -352,7 +372,7 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
         // TODO: 날씨 타입을 props로 받아서 분기 처리
         const weatherType = 'Sunny' // 임시로 하드코딩, 나중에 props로 변경
         
-        // [ARCHIVED] Rain mode - 아카이브됨
+        // [ARCHIVED] Rain mode - 아카이빙됨
         // if (weatherType === 'Rainy') {
         //     updateRainAnimation(mesh, delta)
         // }
@@ -363,7 +383,7 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
     }
     
     // ============================================
-    // [ARCHIVED] Rain 애니메이션 - 아카이브됨
+    // [ARCHIVED] Rain 애니메이션 - 아카이빙됨
     // ============================================
     /*
     // [Rain 애니메이션] 빗방울이 떨어지는 효과 + 가로폭 보정
@@ -500,65 +520,24 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
     */
     // ============================================
     
-    // [Sunny] 타일 ShaderMaterial (모서리 그림자)
-    const tileShaderMaterial = useMemo(() => {
-        return new THREE.ShaderMaterial({
-            vertexShader: `
-                attribute vec2 tileRotation; // rotX, rotY 정보
-                varying vec2 vUv;
-                varying vec2 vRotation;
-                
-                void main() {
-                    vUv = uv;
-                    vRotation = tileRotation;
-                    gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                uniform vec3 baseColor;
-                varying vec2 vUv;
-                varying vec2 vRotation;
-                
-                void main() {
-                    vec2 center = vec2(0.5, 0.5);
-                    vec2 toCenter = vUv - center;
-                    
-                    // 회전 방향에 따른 모서리 감지
-                    // vRotation.x = rotX (상하), vRotation.y = rotY (좌우)
-                    float rotStrength = length(vRotation);
-                    
-                    if (rotStrength > 0.01) {
-                        // 들린 모서리 방향 계산
-                        vec2 edgeDir = normalize(vRotation);
-                        
-                        // UV와 회전 방향의 내적으로 모서리 판단
-                        float edgeDot = dot(normalize(toCenter), edgeDir);
-                        
-                        // 모서리에서의 거리 (중심에서 멀수록 값이 큼)
-                        float distFromCenter = length(toCenter);
-                        
-                        // 모서리 부근에만 그림자 적용 (들린 모서리 반대편)
-                        float shadowMask = 0.0;
-                        if (edgeDot < -0.1 && distFromCenter > 0.25) {
-                            // 빳빳한 타일의 그림자 - 더 강하고 명확하게
-                            shadowMask = smoothstep(0.25, 0.8, distFromCenter) * smoothstep(-0.1, -0.8, edgeDot);
-                        }
-                        
-                        float shadowStrength = shadowMask * rotStrength * 0.2; // 최대 20% 어두워짐 (은은한 그림자)
-                        vec3 color = baseColor * (1.0 - shadowStrength);
-                        
-                        gl_FragColor = vec4(color, 1.0);
-                    } else {
-                        // 회전 없으면 기본 색상
-                        gl_FragColor = vec4(baseColor, 1.0);
-                    }
-                }
-            `,
-            uniforms: {
-                baseColor: { value: new THREE.Color(tileColor) }
-            },
+    // [ARCHIVED] Rain 타일 Material - 아카이빙됨
+    /*
+    const tileBasicMaterial = useMemo(() => {
+        return new THREE.MeshBasicMaterial({
+            color: new THREE.Color(tileColor),
             toneMapped: false,
-            transparent: true
+            transparent: false
+        })
+    }, [tileColor])
+    */
+    
+    // [Sunny] 타일 Material - 단순하고 깔끔하게
+    const tileShaderMaterial = useMemo(() => {
+        return new THREE.MeshBasicMaterial({
+            color: new THREE.Color(tileColor),
+            toneMapped: false,
+            transparent: true,
+            opacity: SUNNY_TILE_OPACITY
         })
     }, [tileColor])
     
@@ -597,7 +576,8 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
                 
                 void main() {
                     vec2 center = vec2(0.5, 0.5);
-                    float dist = distance(vUv, center);
+                    vec2 dir = vUv - center;
+                    float dist = length(dir);
                     
                     // 정적이고 고급스러운 노이즈 (속도 감소)
                     float noiseValue = noise(vUv * 12.0 + uTime * 0.1);
@@ -606,28 +586,81 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
                     // 펄스 효과
                     float radius = 0.5 + uPulse * 0.01;
                     
-                    // 3단계 방사형 그라데이션 (순백 → 골드 → 딥오렌지)
+                    // 🌈 색수차 (Chromatic Aberration) - RGB 분리 효과
+                    const float aberrationStrength = 0.015; // 색수차 강도
+                    
+                    // 각 색상 채널을 약간 다른 위치에서 샘플링
+                    vec2 uvR = center + dir * (1.0 + aberrationStrength); // Red - 바깥쪽
+                    vec2 uvG = center + dir * (1.0);                       // Green - 중앙
+                    vec2 uvB = center + dir * (1.0 - aberrationStrength); // Blue - 안쪽
+                    
+                    float distR = length(uvR - center) + noise(uvR * 12.0 + uTime * 0.1) * 0.025;
+                    float distG = organicDist;
+                    float distB = length(uvB - center) + noise(uvB * 12.0 + uTime * 0.1) * 0.025;
+                    
+                    // 3단계 방사형 그라데이션 (순백 → 골드 → 딥오렌지) - 각 채널별로
                     vec3 innerColor = vec3(1.0, 1.0, 1.0);    // #FFFFFF 순백색 (눈부신 중앙)
                     vec3 middleColor = vec3(1.0, 0.84, 0.0);  // #FFD700 골드
                     vec3 outerColor = vec3(1.0, 0.27, 0.0);   // #FF4500 딥 오렌지
                     
-                    vec3 color;
-                    if (organicDist < radius * 0.25) {
-                        color = innerColor;
-                    } else if (organicDist < radius * 0.55) {
-                        float t = (organicDist - radius * 0.25) / (radius * 0.3);
-                        color = mix(innerColor, middleColor, t);
+                    // Red 채널
+                    vec3 colorR;
+                    if (distR < radius * 0.25) {
+                        colorR = innerColor;
+                    } else if (distR < radius * 0.55) {
+                        float t = (distR - radius * 0.25) / (radius * 0.3);
+                        colorR = mix(innerColor, middleColor, t);
                     } else {
-                        float t = (organicDist - radius * 0.55) / (radius * 0.45);
-                        color = mix(middleColor, outerColor, t);
+                        float t = (distR - radius * 0.55) / (radius * 0.45);
+                        colorR = mix(middleColor, outerColor, t);
                     }
                     
-                    // 단순화된 블러 (가시성 확보)
-                    const float SUN_BLUR_INNER = 0.5;
-                    const float SUN_BLUR_OUTER = 1.0;
-                    const float SUN_BLUR_POWER = 1.0;
-                    float alpha = 1.0 - smoothstep(radius * SUN_BLUR_INNER, radius * SUN_BLUR_OUTER, organicDist);
-                    alpha = pow(alpha, SUN_BLUR_POWER);
+                    // Green 채널
+                    vec3 colorG;
+                    if (distG < radius * 0.25) {
+                        colorG = innerColor;
+                    } else if (distG < radius * 0.55) {
+                        float t = (distG - radius * 0.25) / (radius * 0.3);
+                        colorG = mix(innerColor, middleColor, t);
+                    } else {
+                        float t = (distG - radius * 0.55) / (radius * 0.45);
+                        colorG = mix(middleColor, outerColor, t);
+                    }
+                    
+                    // Blue 채널
+                    vec3 colorB;
+                    if (distB < radius * 0.25) {
+                        colorB = innerColor;
+                    } else if (distB < radius * 0.55) {
+                        float t = (distB - radius * 0.25) / (radius * 0.3);
+                        colorB = mix(innerColor, middleColor, t);
+                    } else {
+                        float t = (distB - radius * 0.55) / (radius * 0.45);
+                        colorB = mix(middleColor, outerColor, t);
+                    }
+                    
+                    // 색수차 합성
+                    vec3 color = vec3(colorR.r, colorG.g, colorB.b);
+                    
+                    // ✨ 렌즈 플레어 (Lens Flare) - 외곽에 무지개 링
+                    float flareRing = smoothstep(radius * 0.85, radius * 0.9, organicDist) * 
+                                     (1.0 - smoothstep(radius * 0.9, radius * 1.0, organicDist));
+                    
+                    // 무지개 색상 (각도 기반)
+                    float angle = atan(dir.y, dir.x);
+                    vec3 rainbowColor = vec3(
+                        0.5 + 0.5 * sin(angle * 3.0 + uTime * 2.0),
+                        0.5 + 0.5 * sin(angle * 3.0 + uTime * 2.0 + 2.094),
+                        0.5 + 0.5 * sin(angle * 3.0 + uTime * 2.0 + 4.188)
+                    );
+                    
+                    // 플레어 적용 (미세하게)
+                    color = mix(color, rainbowColor, flareRing * 0.3);
+                    
+                    // 링 형태의 블러: 중심은 투명, 가장자리에만 부드러운 빛
+                    float innerFade = smoothstep(radius * 0.15, radius * 0.4, organicDist);
+                    float outerFade = 1.0 - smoothstep(radius * 0.55, radius * 0.95, organicDist);
+                    float alpha = pow(clamp(innerFade * outerFade, 0.0, 1.0), 1.2);
                     
                     gl_FragColor = vec4(color, alpha);
                 }
@@ -638,23 +671,37 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
             }
         })
     }, [])
+
+    
+    // ============================================
+    // Sunny 애니메이션
+    // ============================================
     
     // [Sunny 애니메이션] 맑은 날씨 효과
     const updateSunnyAnimation = (mesh: THREE.InstancedMesh, delta: number, state: any) => {
-        // [1] 마우스 좌표 (three.js mouse 사용)
-        const mouseX = state.mouse.x * viewport.width / 2
-        const mouseY = state.mouse.y * viewport.height / 2
+        // [1] 화면 중앙(0,0) 기준 마우스 월드 좌표
+        const mouseX = (state.mouse.x * viewport.width) / 2
+        const mouseY = (state.mouse.y * viewport.height) / 2
         
-        // [2] 태양 위치 - 중앙 고정 (가시성 확보용)
-        // const lerpFactor = 0.8 * delta
-        // const offsetX = mouseX * 0.1
-        // const offsetY = mouseY * 0.1
-        // sunStateRef.current.sunX += (offsetX - sunStateRef.current.sunX) * lerpFactor
-        // sunStateRef.current.sunY += (offsetY - sunStateRef.current.sunY) * lerpFactor
+        // [2] 태양 위치 - 중앙 기준으로 은은하게 드리프트
+        const driftState = sunDriftRef.current
+        driftState.timer += delta
+        const needsNewTarget = driftState.timer >= driftState.duration || driftState.current.distanceTo(driftState.target) < 0.002
+        if (needsNewTarget) {
+            driftState.timer = 0
+            driftState.duration = SUN_DRIFT_INTERVAL_MIN + Math.random() * (SUN_DRIFT_INTERVAL_MAX - SUN_DRIFT_INTERVAL_MIN)
+            const angle = Math.random() * Math.PI * 2
+            const radius = SUN_DRIFT_RANGE * (0.4 + Math.random() * 0.6)
+            driftState.target.set(Math.cos(angle) * radius, Math.sin(angle) * radius)
+        }
+        const lerpAlpha = Math.min(1, delta / Math.max(0.0001, driftState.duration))
+        driftState.current.lerp(driftState.target, lerpAlpha)
+        sunStateRef.current.sunX = driftState.current.x
+        sunStateRef.current.sunY = driftState.current.y
         
-        // [3] 태양 메쉬 업데이트 - 중앙 고정
+        // [3] 태양 메쉬 업데이트 - 타일 바로 뒤에서 빛나게 (z=-0.5)
         if (sunMeshRef.current) {
-            sunMeshRef.current.position.set(0, 0, -1)
+            sunMeshRef.current.position.set(sunStateRef.current.sunX, sunStateRef.current.sunY, -0.5)
             
             // 펄스 애니메이션
             sunStateRef.current.pulsePhase += delta * 2.0
@@ -665,91 +712,160 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
             material.uniforms.uPulse.value = pulseValue
         }
         
-        // [4] 타일 렌더링 - 개별 타일 핀포인트 틸트
-        const tempObject = new THREE.Object3D()
+        // [4] 타일 렌더링 - 강철판 자석 물리
         
-        // 타일 회전 정보 attribute 초기화 (첫 프레임에만)
-        if (!mesh.geometry.attributes.tileRotation) {
-            const rotations = new Float32Array(count * 2) // rotX, rotY
-            mesh.geometry.setAttribute('tileRotation', new THREE.InstancedBufferAttribute(rotations, 2))
+        // [타일 상태 초기화] 처음에만 실행
+        if (!tileStatesRef.current) {
+            tileStatesRef.current = Array.from({ length: count }, () => ({
+                rotX: 0,
+                rotY: 0,
+                offsetZ: 0
+            }))
         }
         
-        const rotations = mesh.geometry.attributes.tileRotation as THREE.InstancedBufferAttribute
+        const tileStates = tileStatesRef.current
         let idx = 0
         
         for (let col = 0; col < cols; col++) {
             for (let row = 0; row < rows; row++) {
-                // 초기 배치와 동일한 좌표 계산 (픽셀 정렬)
-                const yWorld = startY + (row * unitTileSize)
-                const yPixel = Math.round(yWorld / pixelToUnit)
-                const y = yPixel * pixelToUnit
-                const xPixel = Math.round((startX + (col * unitTileSize)) / pixelToUnit)
-                const x = xPixel * pixelToUnit
+                // [타일 중심 좌표] 월드 절대 좌표로 계산하여 마우스와 직접 비교
+                const tileWorldX = startX + (col * unitTileSize) + unitTileSize / 2
+                const tileWorldY = startY + (row * unitTileSize) + unitTileSize / 2
                 
-                // 타일 중심점
-                const centerX = x + unitTileSize / 2
-                const centerY = y + unitTileSize / 2
-                
-                // 마우스까지의 거리 (타일 중심 기준)
-                const dx = mouseX - centerX
-                const dy = mouseY - centerY
+                // 마우스까지의 거리 (월드 좌표계 1:1 비교)
+                const dx = mouseX - tileWorldX
+                const dy = mouseY - tileWorldY
                 const distance = Math.sqrt(dx * dx + dy * dy)
                 
-                // 타일 단위 반응 범위 (마우스가 올라간 타일만 강하게 반응)
-                const maxDistance = unitTileSize * 1.0  // 거의 타일 크기와 동일
+                // 목표값 초기화
+                let targetRotX = 0
+                let targetRotY = 0
+                let targetOffsetZ = 0
                 
-                let rotX = 0
-                let rotY = 0
-                let offsetZ = 0
+                // 🧲 반응 범위 - 타일 1개 크기
+                const maxDistance = unitTileSize * 1.0
                 
+                // 거리 기반 타일 반응
                 if (distance < maxDistance) {
-                    // 빳빳한 플라스틱 면 전환 효과 (접히지 않고 단단하게 틀어짐)
-                    const influence = 1.0 - (distance / maxDistance)
-                    const snapInfluence = Math.pow(influence, 2.5)  // 더 급격한 감소로 빳빳한 스냅 효과
+                    // 선형 influence - 단순하게
+                    let influence = 1.0 - (distance / maxDistance)
                     
-                    // 방향 정규화 (마우스가 있는 방향)
-                    const normalizedDx = dx / unitTileSize  // -0.5 ~ 0.5
-                    const normalizedDy = dy / unitTileSize  // -0.5 ~ 0.5
+                    // 🛡️ 데드존 적용: 타일 중앙 영역은 회전하지 않음 (강철판 느낌)
+                    if (influence < SUNNY_DEAD_ZONE) {
+                        influence = 0
+                    } else {
+                        // 데드존 이후 부드럽게 시작
+                        influence = (influence - SUNNY_DEAD_ZONE) / (1.0 - SUNNY_DEAD_ZONE)
+                    }
                     
-                    // 강한 회전 각도 (1.2 라디안 = 약 69도)
-                    // 빳빳한 면이 확실히 틀어지는 느낌
-                    const tiltPower = 1.4  // 기본 강도 증가
-                    rotY = -normalizedDx * snapInfluence * tiltPower
-                    rotX = normalizedDy * snapInfluence * tiltPower
+                    // 🔩 마우스 위치에 따른 직접 회전 - 위/아래 분기 처리
+                    // Y축 회전: 좌우는 동일하게 (마우스 반대편이 들림)
+                    let rawRotY = -(dx / unitTileSize) * SUNNY_TILT_POWER * influence
                     
-                    // 더 큰 입체적 들림 (35 유닛)
-                    offsetZ = snapInfluence * 100.0
+                    // X축 회전: 위와 아래를 다르게!
+                    let rawRotX: number
+                    if (dy < 0) {
+                        // 마우스가 아래쪽 → 아래 모서리 → 들리는 방향 (양수)
+                        rawRotX = (dy / unitTileSize) * SUNNY_TILT_POWER * influence
+                    } else {
+                        // 마우스가 위쪽 → 위 모서리 → 눌리는 방향 (음수 반전)
+                        rawRotX = -(dy / unitTileSize) * SUNNY_TILT_POWER * influence
+                    }
+                    
+                    // 🔒 최대 회전각 제한 - 강철판이 사라지지 않게
+                    targetRotY = Math.max(-SUNNY_MAX_ROTATION, Math.min(SUNNY_MAX_ROTATION, rawRotY))
+                    targetRotX = Math.max(-SUNNY_MAX_ROTATION, Math.min(SUNNY_MAX_ROTATION, rawRotX))
+                    
+                    // 🚀 Z축 들림
+                    targetOffsetZ = influence * influence * SUNNY_Z_LIFT
                 }
                 
-                // 중심축 고정 매트릭스 (위치가 밀리지 않음)
-                tempObject.position.set(centerX, centerY, 0.1 + offsetZ)
-                tempObject.rotation.set(rotX, rotY, 0)
-                tempObject.scale.set(tileWorldSize, tileWorldSize, 1)
-                tempObject.updateMatrix()
+                /*
+                // [원본 로직 - 주석 처리]
+                if (distance < maxDistance) {
+                    // 🔩 빳be3한 금속 판 회전 - 공격적인 면 전환
+                    const influence = 1.0 - (distance / maxDistance)
+                    // 스냅 효과: '착' 감기는 순간 가속도
+                    const snapInfluence = Math.pow(influence, SUNNY_SNAP_POWER)
+                    
+                    // 방향 정규화 (마운스가 있는 방향)
+                    const normalizedDx = dx / unitTileSize
+                    const normalizedDy = dy / unitTileSize
+                    
+                    // 🎯 공격적인 회전 - 단단한 면 전체가 틀어짐
+                    targetRotY = -normalizedDx * snapInfluence * SUNNY_TILT_POWER
+                    targetRotX = normalizedDy * snapInfluence * SUNNY_TILT_POWER
+                    
+                    // 🚀 튜어나오는 Z축 들림 - 사용자 쪽으로!
+                    targetOffsetZ = snapInfluence * SUNNY_Z_LIFT
+                }
                 
-                mesh.setMatrixAt(idx, tempObject.matrix)
+                // 마우스가 없으면 targetRotX, targetRotY, targetOffsetZ는 0으로 유지
                 
-                // 회전 정보 저장 (셰이더에서 모서리 그림자 계산용)
-                const rotStrength = Math.sqrt(rotX * rotX + rotY * rotY)
-                rotations.setXY(idx, rotX, rotY)
+                // 🧲 고강도 자석 물리 - 단순 lerp로 즉각 반응
+                const tileState = tileStates[idx]
+                
+                // 복잡한 스프링 제거, 단순 선형 보간으로 즐각 반응
+                const lerpFactor = 0.2 // 20% 속도로 쫀듍하게 반응
+                tileState.rotX += (targetRotX - tileState.rotX) * lerpFactor
+                tileState.rotY += (targetRotY - tileState.rotY) * lerpFactor
+                tileState.offsetZ += (targetOffsetZ - tileState.offsetZ) * lerpFactor
+                */
+                
+                // 🧲 단순 lerp - 마우스 속도 무관
+                const tileState = tileStates[idx]
+                
+                // 마우스 위에 있을 때는 느리게, 떠날 때는 빠르게
+                const isMouseOver = distance < maxDistance
+                const lerpSpeed = isMouseOver ? 0.12 : 0.35
+                
+                // 직접 lerp (velocity 누적 없음)
+                tileState.rotX += (targetRotX - tileState.rotX) * lerpSpeed
+                tileState.rotY += (targetRotY - tileState.rotY) * lerpSpeed
+                tileState.offsetZ += (targetOffsetZ - tileState.offsetZ) * lerpSpeed
+                
+                // 작은 값 제거 (떨림 방지)
+                if (Math.abs(tileState.rotX) < 0.0001) tileState.rotX = 0
+                if (Math.abs(tileState.rotY) < 0.0001) tileState.rotY = 0
+                if (Math.abs(tileState.offsetZ) < 0.01) tileState.offsetZ = 0
+                
+                // [수동 행렬] compose() 메서드로 중앙 축 회전 보장
+                const finalMatrix = new THREE.Matrix4()
+                
+                // position: 타일의 월드 절대 좌표
+                const position = new THREE.Vector3(
+                    tileWorldX,
+                    tileWorldY,
+                    0.1 + tileState.offsetZ
+                )
+                
+                // quaternion: 회전 (Euler를 Quaternion으로 변환)
+                const euler = new THREE.Euler(tileState.rotX, tileState.rotY, 0, 'XYZ')
+                const quaternion = new THREE.Quaternion().setFromEuler(euler)
+                
+                // scale: 타일 크기
+                const scale = new THREE.Vector3(tileWorldSize, tileWorldSize, 1)
+                
+                // compose로 중앙 축 회전 보장 (빳빳한 금속판 질감)
+                finalMatrix.compose(position, quaternion, scale)
+                
+                mesh.setMatrixAt(idx, finalMatrix)
                 
                 idx++
             }
         }
-        
-        rotations.needsUpdate = true
         
         mesh.instanceMatrix.needsUpdate = true
     }
 
     return (
         <>
-            {/* 태양 레이어 (z=-1 타일 뒤에 배치) */}
+            {/* 태양 레이어 (z=-0.5 타일 바로 뒤에서 빛나게) */}
             <mesh 
                 ref={sunMeshRef} 
-                position={[0, 0, -1]}
+                position={[0, 0, -0.5]}
             >
-                <circleGeometry args={[Math.max(viewport.width, viewport.height) * 0.4, 64]} />
+                <circleGeometry args={[viewport.width * 0.26, 60]} />
                 <primitive object={sunShaderMaterial} attach="material" />
             </mesh>
             
@@ -765,7 +881,7 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
 const GridBackground: React.FC<GridBackgroundProps> = ({
     tileSize = 360,
     tileColor = '#F7F7F7',
-    backgroundColor = '#EBEBEB',
+    backgroundColor = '#e3e3e3',
 }) => {
     return (
         <div style={{

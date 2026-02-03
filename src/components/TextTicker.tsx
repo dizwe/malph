@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, type Variants } from 'framer-motion'
+import React, { useState, useEffect } from 'react'
+import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import '../pages/Home.css'
 
 const texts = [
