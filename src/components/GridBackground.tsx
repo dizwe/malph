@@ -2,10 +2,24 @@ import React, { useLayoutEffect, useRef, useMemo, useEffect } from 'react'
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
+type WeatherMode = 'Sunny' | 'Rainy' | (string & {})
+
 interface GridBackgroundProps {
     tileSize?: number
     tileColor?: string
     backgroundColor?: string
+    weatherMode?: WeatherMode
+}
+
+const WEATHER_STYLE_PRESETS: Record<string, { tileColor: string; backgroundColor: string }> = {
+    Sunny: {
+        tileColor: '#f7f7f7',
+        backgroundColor: '#e3e3e3'
+    },
+    Rainy: {
+        tileColor: '#b1bdcb',
+        backgroundColor: '#0c111a'
+    }
 }
 
 // Scene 배경색을 설정하는 컴포넌트
@@ -19,7 +33,7 @@ const SceneBackground: React.FC<{ color: string }> = ({ color }) => {
     return null
 }
 
-const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tileSize, tileColor }) => {
+const TileInstances: React.FC<{ tileSize: number; tileColor: string; weatherMode: WeatherMode }> = ({ tileSize, tileColor, weatherMode }) => {
     const { viewport, size, gl } = useThree()
     const meshRef = useRef<THREE.InstancedMesh>(null)
     
@@ -57,9 +71,9 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
     const SUN_DRIFT_RANGE = viewportShortSide * 0.2 // 태양 드리프트 반경
     const SUN_DRIFT_INTERVAL_MIN = 2.0  // 드리프트 방향 전환 최소 간격 (초)
     const SUN_DRIFT_INTERVAL_MAX = 3.0  // 드리프트 방향 전환 최대 간격 (초)
-    const SUN_MOUSE_CAPTURE_RADIUS = viewportShortSide * 0.3 // 마우스 제어가 활성화되는 반경
+    const SUN_MOUSE_CAPTURE_RADIUS = viewportShortSide * 0.4 // 마우스 제어가 활성화되는 반경
     const SUN_MOUSE_MAX_OFFSET = viewportShortSide * 0.5     // 마우스 추적 시 허용되는 최대 이동 반경
-    const SUN_MOUSE_FOLLOW_SMOOTHNESS = 0.8                  // 마우스 추적 시 lerp 속도
+    const SUN_MOUSE_FOLLOW_SMOOTHNESS = 0.6                  // 마우스 추적 시 lerp 속도
     
     // 스프링 물리 파라미터 - 단단한 금속 자석 물리
     const SPRING_STIFFNESS = 0.4     // 스프링 강성 - 빳빳한 힘 (0.2~0.4)
@@ -277,7 +291,7 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
         if (!rainStateRef.current.progress || rainStateRef.current.progress.length === 0) return
         
         // TODO: 날씨 타입 결정 로직
-        const weatherType = 'Sunny'
+        const weatherType = weatherMode
         
         // [Sunny 모드] 가로 애니메이션 비활성화
         if (weatherType === 'Sunny') {
@@ -374,7 +388,7 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
         delta: number
     ) => {
         // TODO: 날씨 타입을 props로 받아서 분기 처리
-        const weatherType = 'Sunny' // 임시로 하드코딩, 나중에 props로 변경
+        const weatherType = weatherMode
         
         // [ARCHIVED] Rain mode - 아카이빙됨
         // if (weatherType === 'Rainy') {
@@ -382,6 +396,10 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
         // }
         
         if (weatherType === 'Sunny') {
+            updateSunnyAnimation(mesh, delta, state)
+        } else if (weatherType === 'Rainy') {
+            // TODO: 재활성화 시 updateRainAnimation(mesh, delta)
+        } else {
             updateSunnyAnimation(mesh, delta, state)
         }
     }
@@ -578,6 +596,25 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
                     return mix(a, b, u.x) + (c - a)* u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
                 }
                 
+                mat2 rotate2d(float angle){
+                    float s = sin(angle);
+                    float c = cos(angle);
+                    return mat2(c, -s, s, c);
+                }
+                
+                float fbm(vec2 st) {
+                    float value = 0.0;
+                    float amplitude = 0.5;
+                    float frequency = 1.5;
+                    for (int i = 0; i < 4; i++) {
+                        value += amplitude * noise(st * frequency);
+                        st = rotate2d(1.2) * st + 0.5;
+                        amplitude *= 0.5;
+                        frequency *= 2.0;
+                    }
+                    return value;
+                }
+                
                 void main() {
                     vec2 center = vec2(0.5, 0.5);
                     vec2 dir = vUv - center;
@@ -586,6 +623,12 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
                     // 정적이고 고급스러운 노이즈 (속도 감소)
                     float noiseValue = noise(vUv * 12.0 + uTime * 0.1);
                     float organicDist = dist + noiseValue * 0.025;
+                    
+                    // 유기적인 일렁임을 위한 FBM 노이즈와 플리커
+                    vec2 swirlUv = rotate2d(uTime * 0.05) * (vUv - vec2(0.5)) * 6.0;
+                    float flameNoise = fbm(swirlUv + vec2(uTime * 0.18, uTime * 0.11));
+                    float boundaryNoise = fbm(dir * 5.0 + vec2(uTime * 0.2)) * 0.6;
+                    float flicker = 0.95 + sin(uTime * 3.3) * 0.05;
                     
                     // 펄스 효과
                     float radius = 0.5 + uPulse * 0.01;
@@ -609,42 +652,54 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
                     
                     // Red 채널
                     vec3 colorR;
-                    if (distR < radius * 0.25) {
+                    float innerBoundary = radius * (0.25 + boundaryNoise * 0.08);
+                    float midBoundary = radius * (0.55 + boundaryNoise * 0.12);
+                    if (distR < innerBoundary) {
                         colorR = innerColor;
-                    } else if (distR < radius * 0.55) {
-                        float t = (distR - radius * 0.25) / (radius * 0.3);
+                    } else if (distR < midBoundary) {
+                        float t = (distR - innerBoundary) / max(0.0001, (midBoundary - innerBoundary));
+                        t = clamp(t + boundaryNoise * 0.2, 0.0, 1.0);
                         colorR = mix(innerColor, middleColor, t);
                     } else {
-                        float t = (distR - radius * 0.55) / (radius * 0.45);
+                        float t = (distR - midBoundary) / max(0.0001, (radius * 0.45));
+                        t = clamp(t + boundaryNoise * 0.1, 0.0, 1.0);
                         colorR = mix(middleColor, outerColor, t);
                     }
                     
                     // Green 채널
                     vec3 colorG;
-                    if (distG < radius * 0.25) {
+                    if (distG < innerBoundary) {
                         colorG = innerColor;
-                    } else if (distG < radius * 0.55) {
-                        float t = (distG - radius * 0.25) / (radius * 0.3);
+                    } else if (distG < midBoundary) {
+                        float t = (distG - innerBoundary) / max(0.0001, (midBoundary - innerBoundary));
+                        t = clamp(t + boundaryNoise * 0.2, 0.0, 1.0);
                         colorG = mix(innerColor, middleColor, t);
                     } else {
-                        float t = (distG - radius * 0.55) / (radius * 0.45);
+                        float t = (distG - midBoundary) / max(0.0001, (radius * 0.45));
+                        t = clamp(t + boundaryNoise * 0.1, 0.0, 1.0);
                         colorG = mix(middleColor, outerColor, t);
                     }
                     
                     // Blue 채널
                     vec3 colorB;
-                    if (distB < radius * 0.25) {
+                    if (distB < innerBoundary) {
                         colorB = innerColor;
-                    } else if (distB < radius * 0.55) {
-                        float t = (distB - radius * 0.25) / (radius * 0.3);
+                    } else if (distB < midBoundary) {
+                        float t = (distB - innerBoundary) / max(0.0001, (midBoundary - innerBoundary));
+                        t = clamp(t + boundaryNoise * 0.2, 0.0, 1.0);
                         colorB = mix(innerColor, middleColor, t);
                     } else {
-                        float t = (distB - radius * 0.55) / (radius * 0.45);
+                        float t = (distB - midBoundary) / max(0.0001, (radius * 0.45));
+                        t = clamp(t + boundaryNoise * 0.1, 0.0, 1.0);
                         colorB = mix(middleColor, outerColor, t);
                     }
                     
                     // 색수차 합성
                     vec3 color = vec3(colorR.r, colorG.g, colorB.b);
+                    
+                    // 이글거리는 색상 교차
+                    vec3 emberColor = vec3(1.0, 0.58, 0.18);
+                    color = mix(color, emberColor, flameNoise * 0.2);
                     
                     // ✨ 렌즈 플레어 (Lens Flare) - 외곽에 무지개 링
                     float flareRing = smoothstep(radius * 0.85, radius * 0.9, organicDist) * 
@@ -660,6 +715,8 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
                     
                     // 플레어 적용 (미세하게)
                     color = mix(color, rainbowColor, flareRing * 0.3);
+                    color *= flicker;
+                    color += flameNoise * 0.3;
                     
                     // 링 형태의 블러: 중심은 투명, 가장자리에만 부드러운 빛
                     float innerFade = smoothstep(radius * 0.15, radius * 0.4, organicDist);
@@ -902,9 +959,13 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
 
 const GridBackground: React.FC<GridBackgroundProps> = ({
     tileSize = 360,
-    tileColor = '#f7f7f7',
-    backgroundColor = '#e3e3e3',
+    tileColor,
+    backgroundColor,
+    weatherMode = 'Sunny',
 }) => {
+    const preset = WEATHER_STYLE_PRESETS[weatherMode] ?? WEATHER_STYLE_PRESETS.Sunny
+    const resolvedTileColor = tileColor ?? preset.tileColor
+    const resolvedBackgroundColor = backgroundColor ?? preset.backgroundColor
     return (
         <div style={{
             position: 'absolute',
@@ -913,7 +974,7 @@ const GridBackground: React.FC<GridBackgroundProps> = ({
             width: '100%',
             height: '100%',
             zIndex: 0,
-            backgroundColor,
+            backgroundColor: resolvedBackgroundColor,
         }}>
             <Canvas
                 orthographic
@@ -931,8 +992,8 @@ const GridBackground: React.FC<GridBackgroundProps> = ({
                 }}
                 resize={{ scroll: false, debounce: { scroll: 50, resize: 0 } }}
             >
-                <SceneBackground color={backgroundColor} />
-                <TileInstances tileSize={tileSize} tileColor={tileColor} />
+                <SceneBackground color={resolvedBackgroundColor} />
+                <TileInstances tileSize={tileSize} tileColor={resolvedTileColor} weatherMode={weatherMode} />
             </Canvas>
         </div>
     )
