@@ -23,6 +23,7 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
     const { viewport, size, gl } = useThree()
     const meshRef = useRef<THREE.InstancedMesh>(null)
     
+    const viewportShortSide = Math.min(viewport.width, viewport.height)
     // ===== 조절 가능한 파라미터 =====
     const FALL_DURATION = 0.6        // 떨어지는 애니메이션 시간 (초) - 작을수록 빠름
     const REGEN_DURATION = 0.6       // 재생성 애니메이션 시간 (초) - 작을수록 빠름
@@ -50,12 +51,15 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
     const SUNNY_SNAP_POWER = 5.0     // 스냅 반응 속도 (4.0~6.0) - '착' 감기는 순간 가속도
     const SUNNY_SHADOW_STRENGTH = 0.6  // 그림자 강도 (0.2~0.4) - 각도 대비 강화
     const SUNNY_REACTION_RANGE = 10 // 반응 범위 (unitTileSize 배수) - 마우스 근처 타일들이 반응
-    const SUNNY_TILE_OPACITY = 0.1  // 타일 투명도 (0.95~1.0) - 태양이 살짝 비치게
+    const SUNNY_TILE_OPACITY = 0.5  // 타일 투명도 (0.95~1.0) - 태양이 살짝 비치게
     const SUNNY_MAX_ROTATION = 0.56  // 최대 회전각 (라디안, 약 26도) - 판이 사라지지 않게 제한
     const SUNNY_DEAD_ZONE = 0.0      // 중앙 데드존 비율 (0~1) - 0으로 설정하여 모든 영역 반응
-    const SUN_DRIFT_RANGE = Math.min(viewport.width, viewport.height) * 0.1 // 태양 드리프트 반경
+    const SUN_DRIFT_RANGE = viewportShortSide * 0.2 // 태양 드리프트 반경
     const SUN_DRIFT_INTERVAL_MIN = 2.0  // 드리프트 방향 전환 최소 간격 (초)
     const SUN_DRIFT_INTERVAL_MAX = 3.0  // 드리프트 방향 전환 최대 간격 (초)
+    const SUN_MOUSE_CAPTURE_RADIUS = viewportShortSide * 0.3 // 마우스 제어가 활성화되는 반경
+    const SUN_MOUSE_MAX_OFFSET = viewportShortSide * 0.5     // 마우스 추적 시 허용되는 최대 이동 반경
+    const SUN_MOUSE_FOLLOW_SMOOTHNESS = 0.8                  // 마우스 추적 시 lerp 속도
     
     // 스프링 물리 파라미터 - 단단한 금속 자석 물리
     const SPRING_STIFFNESS = 0.4     // 스프링 강성 - 빳빳한 힘 (0.2~0.4)
@@ -683,21 +687,39 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
         const mouseX = (state.mouse.x * viewport.width) / 2
         const mouseY = (state.mouse.y * viewport.height) / 2
         
-        // [2] 태양 위치 - 중앙 기준으로 은은하게 드리프트
+        // [2] 태양 위치 - 중앙 기준 드리프트 + 마우스 추적
         const driftState = sunDriftRef.current
-        driftState.timer += delta
-        const needsNewTarget = driftState.timer >= driftState.duration || driftState.current.distanceTo(driftState.target) < 0.002
-        if (needsNewTarget) {
+        const mouseDistanceFromCenter = Math.hypot(mouseX, mouseY)
+        const isMouseControllingSun = mouseDistanceFromCenter <= SUN_MOUSE_CAPTURE_RADIUS
+        if (isMouseControllingSun) {
+            let targetX = mouseX
+            let targetY = mouseY
+            if (mouseDistanceFromCenter > SUN_MOUSE_MAX_OFFSET && mouseDistanceFromCenter > 0.00001) {
+                const clampRatio = SUN_MOUSE_MAX_OFFSET / mouseDistanceFromCenter
+                targetX *= clampRatio
+                targetY *= clampRatio
+            }
+            const followLerp = 1 - Math.exp(-delta * SUN_MOUSE_FOLLOW_SMOOTHNESS)
+            sunStateRef.current.sunX += (targetX - sunStateRef.current.sunX) * followLerp
+            sunStateRef.current.sunY += (targetY - sunStateRef.current.sunY) * followLerp
+            driftState.current.set(sunStateRef.current.sunX, sunStateRef.current.sunY)
+            driftState.target.copy(driftState.current)
             driftState.timer = 0
-            driftState.duration = SUN_DRIFT_INTERVAL_MIN + Math.random() * (SUN_DRIFT_INTERVAL_MAX - SUN_DRIFT_INTERVAL_MIN)
-            const angle = Math.random() * Math.PI * 2
-            const radius = SUN_DRIFT_RANGE * (0.4 + Math.random() * 0.6)
-            driftState.target.set(Math.cos(angle) * radius, Math.sin(angle) * radius)
+        } else {
+            driftState.timer += delta
+            const needsNewTarget = driftState.timer >= driftState.duration || driftState.current.distanceTo(driftState.target) < 0.002
+            if (needsNewTarget) {
+                driftState.timer = 0
+                driftState.duration = SUN_DRIFT_INTERVAL_MIN + Math.random() * (SUN_DRIFT_INTERVAL_MAX - SUN_DRIFT_INTERVAL_MIN)
+                const angle = Math.random() * Math.PI * 2
+                const radius = SUN_DRIFT_RANGE * (0.4 + Math.random() * 0.6)
+                driftState.target.set(Math.cos(angle) * radius, Math.sin(angle) * radius)
+            }
+            const lerpAlpha = Math.min(1, delta / Math.max(0.0001, driftState.duration))
+            driftState.current.lerp(driftState.target, lerpAlpha)
+            sunStateRef.current.sunX = driftState.current.x
+            sunStateRef.current.sunY = driftState.current.y
         }
-        const lerpAlpha = Math.min(1, delta / Math.max(0.0001, driftState.duration))
-        driftState.current.lerp(driftState.target, lerpAlpha)
-        sunStateRef.current.sunX = driftState.current.x
-        sunStateRef.current.sunY = driftState.current.y
         
         // [3] 태양 메쉬 업데이트 - 타일 바로 뒤에서 빛나게 (z=-0.5)
         if (sunMeshRef.current) {
@@ -880,7 +902,7 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string }> = ({ tile
 
 const GridBackground: React.FC<GridBackgroundProps> = ({
     tileSize = 360,
-    tileColor = '#F7F7F7',
+    tileColor = '#f7f7f7',
     backgroundColor = '#e3e3e3',
 }) => {
     return (
