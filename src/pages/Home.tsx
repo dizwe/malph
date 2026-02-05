@@ -59,7 +59,7 @@ const Home: React.FC = () => {
         </div>
         <div className="nav-right">Say Hi</div>
       </nav>
-      <GridBackground tileSize={360}   />
+      <GridBackground tileSize={360} weatherMode="Snow" />
       <TextTicker />
 
       {/* Weather data will be used for design in next steps */}
