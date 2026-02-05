@@ -26,7 +26,7 @@ const FogBackground: React.FC<FogBackgroundProps> = ({ unitTileSize }) => {
 
     // [색상]
     const FOG_BASE_COLOR = '#f0f0f0'  // 기본색 (밝은 안개)
-    const FOG_DARK_COLOR = '#dddddd'  // 안개색 (더 어둡고 묵직한 구름)
+    const FOG_DARK_COLOR = '#d8d8d8'  // 안개색 (더 어둡고 묵직한 구름)
     const FOG_CLEAR_COLOR = '#ebebeb' // 깨끗한 배경색 (마우스 영역)
 
     // [마우스 인터랙션]
