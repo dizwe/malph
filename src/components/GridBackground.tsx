@@ -106,16 +106,16 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
     const SNOW_FADE_IN_DURATION = 1    // 페이드인 시간
     const SNOW_FADE_IN_HOLD_DURATION = 3  // fadeIn 완료 후 falling 전 대기 시간
     const SNOW_SWAY_DELAY = 0.5          // falling 시작 후 sway 효과 시작까지 대기 시간 (초)
-    const SNOW_FALL_DURATION_MIN = 4.5   // 낙하 최소 시간
-    const SNOW_FALL_DURATION_MAX = 7.2   // 낙하 최대 시간
+    const SNOW_FALL_DURATION_MIN = 8.0   // 낙하 최소 시간 (느리게)
+    const SNOW_FALL_DURATION_MAX = 12.0  // 낙하 최대 시간 (느리게)
     const SNOW_LANDED_DURATION = 1.5     // 바닥에 머무는 시간
     const SNOW_LANDED_SLIDE_STRENGTH = 50.0  // 바닥 미끄러짐 강도 (높을수록 많이 미끄러짐)
-    const SNOW_FALLING_FADE_OUT_DURATION = 2  // 잔설 페이드아웃 시간
+    const SNOW_FALLING_FADE_OUT_DURATION = 4  // 잔설 페이드아웃 시간
     const SNOW_FADE_OUT_DURATION = 0.05   // 페이드아웃 시간
     const SNOW_MIN_SCALE = 0.12          // 최소 스케일
     const SNOW_ROTATION_SPEED = 0.3     // 회전 속도
     const SNOW_SWAY_SPEED = 0.1          // 좌우 스웨이 속도
-    const SNOW_SWAY_DISTANCE = 0.4      // 좌우 스웨이 거리
+    const SNOW_SWAY_DISTANCE = 0.5      // 좌우 스웨이 거리
 
     const randomRange = (min: number, max: number) => min + Math.random() * (max - min)
     const easeOutCubic = (t: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3)
