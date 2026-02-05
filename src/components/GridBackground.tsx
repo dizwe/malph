@@ -1,6 +1,7 @@
 import React, { useLayoutEffect, useRef, useMemo, useEffect, useCallback } from 'react'
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import FogBackground from './FogBackground'
 
 type WeatherMode = 'Sunny' | 'Rainy' | 'Snow' | 'Fog' | (string & {})
 
@@ -309,10 +310,10 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
 
     // ===== Fog Mode 파라미터 (Fake Blur) =====
     const FOG_CLEAR_RADIUS = unitTileSize * 1.5  // 마우스 영향 반경 (타일 2.5개 크기)
-    const FOG_CLEAR_SPEED = 6.0           // 안개 걷히는 속도 (빠르게)
-    const FOG_RETURN_SPEED = 0.9          // 안개 돌아오는 속도 (느리게)
-    const FOG_RETURN_DELAY = 1.0          // 안개 돌아오기 전 대기 시간 (초)
-    const FOG_SCALE_REDUCTION = 0.15      // 스케일 감소량 (15%)
+    const FOG_CLEAR_SPEED = 3.0           // 안개 걷히는 속도 (빠르게)
+    const FOG_RETURN_SPEED = 4.2          // 안개 돌아오는 속도 (느리게)
+    const FOG_RETURN_DELAY = 0.5          // 안개 돌아오기 전 대기 시간 (초)
+    const FOG_SCALE_REDUCTION = 0.1      // 스케일 감소량 (15%)
     const FOG_OPACITY_REDUCTION = 0.95     // 투명도 감소량 (70%)
 
     // ============================================
@@ -1674,6 +1675,9 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
 
     return (
         <>
+            {/* [Fog 모드] 동적 안개 배경 */}
+            {weatherMode === 'Fog' && <FogBackground unitTileSize={unitTileSize} />}
+
             {/* [ARCHIVED] Sunny 태양 레이어 */}
             {/*
             <mesh 
