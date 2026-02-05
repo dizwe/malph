@@ -308,12 +308,12 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
     }, [viewport.width, viewport.height, size.width, tileSize])
 
     // ===== Fog Mode 파라미터 (Fake Blur) =====
-    const FOG_CLEAR_RADIUS = unitTileSize * 2  // 마우스 영향 반경 (타일 2.5개 크기)
+    const FOG_CLEAR_RADIUS = unitTileSize * 1.5  // 마우스 영향 반경 (타일 2.5개 크기)
     const FOG_CLEAR_SPEED = 6.0           // 안개 걷히는 속도 (빠르게)
     const FOG_RETURN_SPEED = 0.9          // 안개 돌아오는 속도 (느리게)
     const FOG_RETURN_DELAY = 1.0          // 안개 돌아오기 전 대기 시간 (초)
     const FOG_SCALE_REDUCTION = 0.15      // 스케일 감소량 (15%)
-    const FOG_OPACITY_REDUCTION = 0.8     // 투명도 감소량 (70%)
+    const FOG_OPACITY_REDUCTION = 0.95     // 투명도 감소량 (70%)
 
     // ============================================
     // [ARCHIVED] Snow Mode 함수 - 아카이빙됨
