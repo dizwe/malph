@@ -105,6 +105,7 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
     const SNOW_RESPAWN_DELAY_MAX = 3.5   // 재생성 최대 대기 시간
     const SNOW_FADE_IN_DURATION = 1    // 페이드인 시간
     const SNOW_FADE_IN_HOLD_DURATION = 3  // fadeIn 완료 후 falling 전 대기 시간
+    const SNOW_SWAY_DELAY = 0.5          // falling 시작 후 sway 효과 시작까지 대기 시간 (초)
     const SNOW_FALL_DURATION_MIN = 4.5   // 낙하 최소 시간
     const SNOW_FALL_DURATION_MAX = 7.2   // 낙하 최대 시간
     const SNOW_LANDED_DURATION = 1.5     // 바닥에 머무는 시간
@@ -113,8 +114,8 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
     const SNOW_FADE_OUT_DURATION = 0.05   // 페이드아웃 시간
     const SNOW_MIN_SCALE = 0.12          // 최소 스케일
     const SNOW_ROTATION_SPEED = 0.3     // 회전 속도
-    const SNOW_SWAY_SPEED = 0.6          // 좌우 스웨이 속도
-    const SNOW_SWAY_DISTANCE = 0.3      // 좌우 스웨이 거리
+    const SNOW_SWAY_SPEED = 0.1          // 좌우 스웨이 속도
+    const SNOW_SWAY_DISTANCE = 0.4      // 좌우 스웨이 거리
 
     const randomRange = (min: number, max: number) => min + Math.random() * (max - min)
     const easeOutCubic = (t: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3)
@@ -302,10 +303,10 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
         holdDuration: 0,
         minScale: SNOW_MIN_SCALE * randomRange(0.9, 1.1),
         wobbleSeed: Math.random() * Math.PI * 2,
-        wobbleSpeed: 1.0,
-        wobbleAmount: 0.08,
-        rotationSpeed: SNOW_ROTATION_SPEED * (Math.random() > 0.5 ? 1 : -1),
-        swaySpeed: SNOW_SWAY_SPEED,
+        wobbleSpeed: randomRange(0.7, 1.3),  // 랜덤 wobble 속도
+        wobbleAmount: randomRange(0.05, 0.12),  // 랜덤 wobble 강도
+        rotationSpeed: SNOW_ROTATION_SPEED * randomRange(0.5, 1.5) * (Math.random() > 0.5 ? 1 : -1),  // 랜덤 회전 속도 및 방향
+        swaySpeed: randomRange(0.2, 0.5),  // 랜덤 sway 속도
         swayDistance: tileWorldSize * SNOW_SWAY_DISTANCE,
         slideDirection: Math.random() > 0.5 ? 1 : -1,  // 랜덤 방향 (-1: 왼쪽, 1: 오른쪽)
         offsetX: 0,
@@ -674,6 +675,10 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
                             // Opacity 1 유지
                             tileState.currentOpacity = 1
 
+                            // falling 시작 위치로 미리 설정 (자연스러운 전환)
+                            tileState.offsetX = 0
+                            tileState.offsetY = 0
+
                             if (holdProgress >= 1) {
                                 tileState.phase = 'falling'
                                 tileState.timer = 0
@@ -686,12 +691,31 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
                             const easedFall = gentleEaseIn(fallProgress)
                             tileState.dynamicScale = THREE.MathUtils.lerp(1, tileState.minScale, easedFall)
                             tileState.currentOpacity = 1
+
+                            // 회전 애니메이션
                             const wobbleAngle = Math.sin(elapsedTime * tileState.wobbleSpeed + tileState.wobbleSeed) * tileState.wobbleAmount
                             const driftAngle = tileState.rotationSpeed * tileState.timer * 0.4
                             const targetRotation = driftAngle + wobbleAngle
                             tileState.rotationZ = THREE.MathUtils.lerp(tileState.rotationZ, targetRotation, 0.08)
-                            tileState.offsetX = Math.sin((elapsedTime + tileState.wobbleSeed) * tileState.swaySpeed) * tileState.swayDistance
-                            tileState.offsetY = Math.cos((elapsedTime + tileState.wobbleSeed) * tileState.swaySpeed * 0.7) * tileState.swayDistance * 0.65
+
+                            // Sway 효과 - falling 시작과 동시에 점진적으로 시작
+                            // falling 시작 후 경과 시간
+                            const swayElapsed = tileState.timer
+                            // 1.0초 동안 0→1로 페이드인 (더 부드럽게)
+                            const swayFadeInDuration = 4
+                            const swayIntensity = Math.min(swayElapsed / swayFadeInDuration, 1)
+
+                            // 타일 크기에 비례하여 sway 거리 조정 (작아질수록 흔들림도 작아짐)
+                            const scaleFactor = tileState.dynamicScale
+
+                            // 각 타일의 독립적인 시간 사용 (elapsedTime 대신 tileState.timer)
+                            const tileTime = tileState.timer + tileState.wobbleSeed
+                            const targetOffsetX = Math.sin(tileTime * tileState.swaySpeed) * tileState.swayDistance * scaleFactor
+                            const targetOffsetY = Math.cos(tileTime * tileState.swaySpeed * 0.7) * tileState.swayDistance * 0.9 * scaleFactor
+
+                            tileState.offsetX = targetOffsetX * swayIntensity
+                            tileState.offsetY = targetOffsetY * swayIntensity
+
                             if (fallProgress >= 1) {
                                 tileState.phase = 'landed'
                                 tileState.timer = 0
@@ -712,6 +736,9 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
                             // easeOutCubic: 빠르게 시작하다가 점점 느려짐
                             const slideEase = 1 - Math.pow(landedProgress, 3)  // 1 → 0 (빠름 → 느림)
                             tileState.offsetX += tileState.slideDirection * SNOW_LANDED_SLIDE_STRENGTH * slideEase * delta
+
+                            // Sway 효과 멈춤 - offsetY를 0으로 부드럽게 전환
+                            tileState.offsetY = THREE.MathUtils.lerp(tileState.offsetY, 0, 0.1)
 
                             // 회전은 유지 (각도 리셋 제거)
                             // tileState.rotationZ는 그대로 유지
@@ -775,7 +802,9 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
 
                 const tileWorldX = startX + (col * unitTileSize) + unitTileSize / 2 + tileState.offsetX
                 const tileWorldY = startY + (row * unitTileSize) + unitTileSize / 2 + tileState.offsetY
-                tempPosition.set(tileWorldX, tileWorldY, tileState.phase === 'falling' ? 0.35 : 0.2)
+                // fadeInHold부터 falling과 동일한 z 위치 사용 (자연스러운 전환)
+                const zPosition = (tileState.phase === 'falling' || tileState.phase === 'fadeInHold') ? 0.35 : 0.2
+                tempPosition.set(tileWorldX, tileWorldY, zPosition)
                 const rotationEuler = new THREE.Euler(0, 0, tileState.rotationZ)
                 tempQuaternion.setFromEuler(rotationEuler)
                 tempScale.set(tileWorldSize * renderScale, tileWorldSize * renderScale, 1)
