@@ -2,9 +2,15 @@ import React, { useLayoutEffect, useRef, useMemo, useEffect, useCallback } from 
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
-type WeatherMode = 'Sunny' | 'Rainy' | 'Snow' | (string & {})
+type WeatherMode = 'Sunny' | 'Rainy' | 'Snow' | 'Fog' | (string & {})
 
 type SnowPhase = 'falling' | 'landed' | 'fallingFadeOut' | 'fadeOut' | 'waiting' | 'fadeIn' | 'fadeInHold'
+
+interface FogTileState {
+    clarity: number           // 0~1 (0=블러, 1=선명)
+    targetClarity: number     // 목표 clarity
+    lastMouseTime: number     // 마지막 마우스 접촉 시간
+}
 
 interface SnowTileState {
     phase: SnowPhase
@@ -60,6 +66,10 @@ const WEATHER_STYLE_PRESETS: Record<string, { tileColor: string; backgroundColor
     Snow: {
         tileColor: '#f7f7f7',
         backgroundColor: '#dddddd'
+    },
+    Fog: {
+        tileColor: '#f7f7f7',
+        backgroundColor: '#ebebeb'
     }
 }
 
@@ -99,7 +109,10 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
     const WIDTH_PAUSE_DURATION_MAX = 14.0 // 가로 멈춤 시간 최대값 (초)
     const ROW_CASCADE_DELAY = 0.1   // 위에서 아래로 전이되는 지연 시간 (초/행)
 
-    // ===== Snow Mode 파라미터 (완전 간소화) =====
+    // ============================================
+    // [ARCHIVED] Snow Mode 파라미터 - 아카이빙됨
+    // ============================================
+    /*
     const SNOW_ACTIVE_RATIO = 0.8       // 동시에 활성화된 눈송이 비율
     const SNOW_RESPAWN_DELAY_MIN = 0.5   // 재생성 최소 대기 시간
     const SNOW_RESPAWN_DELAY_MAX = 3.5   // 재생성 최대 대기 시간
@@ -116,6 +129,7 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
     const SNOW_ROTATION_SPEED = 0.3     // 회전 속도
     const SNOW_SWAY_SPEED = 0.1          // 좌우 스웨이 속도
     const SNOW_SWAY_DISTANCE = 0.5      // 좌우 스웨이 거리
+    */
 
     const randomRange = (min: number, max: number) => min + Math.random() * (max - min)
     const easeOutCubic = (t: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3)
@@ -197,6 +211,9 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
 
     // [Snow 모드] 타일 상태 및 투명도 버퍼
     const snowStateRef = useRef<{ tiles: SnowTileState[] }>({ tiles: [] })
+
+    // [Fog 모드] 타일 상태
+    const fogStateRef = useRef<{ tiles: FogTileState[] }>({ tiles: [] })
 
     // [Sunny 모드] 마우스 추적 및 태양 상태
     const sunStateRef = useRef({
@@ -290,6 +307,18 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
         }
     }, [viewport.width, viewport.height, size.width, tileSize])
 
+    // ===== Fog Mode 파라미터 (Fake Blur) =====
+    const FOG_CLEAR_RADIUS = unitTileSize * 2  // 마우스 영향 반경 (타일 2.5개 크기)
+    const FOG_CLEAR_SPEED = 6.0           // 안개 걷히는 속도 (빠르게)
+    const FOG_RETURN_SPEED = 0.9          // 안개 돌아오는 속도 (느리게)
+    const FOG_RETURN_DELAY = 1.0          // 안개 돌아오기 전 대기 시간 (초)
+    const FOG_SCALE_REDUCTION = 0.15      // 스케일 감소량 (15%)
+    const FOG_OPACITY_REDUCTION = 0.8     // 투명도 감소량 (70%)
+
+    // ============================================
+    // [ARCHIVED] Snow Mode 함수 - 아카이빙됨
+    // ============================================
+    /*
     const buildSnowTileState = useCallback((): SnowTileState => ({
         phase: 'waiting',
         timer: 0,
@@ -324,6 +353,111 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
         isActive: true,
         respawnReady: true
     }), [tileWorldSize])
+    */
+
+    // [열별 고유 시드 초기화] cols가 변경될 때마다 새로운 랜덤 시드 생성
+    useMemo(() => {
+        // Convert pixel values to world units
+        const pixelToUnit = viewport.width / size.width
+
+        // 1px에 해당하는 월드 단위
+        const onePixelInWorld = 1 * pixelToUnit
+
+        // 전체 칸 크기 (360px)
+        const unitTileSize = tileSize * pixelToUnit
+
+        // 실제 타일 크기 = 격자 빡빡하게 붙임
+        const tileWorldSize = unitTileSize - onePixelInWorld
+
+        const width = viewport.width
+        const height = viewport.height
+
+        // Calculate number of tiles needed with padding
+        const cols = Math.ceil(width / unitTileSize) + 2
+        const rows = Math.ceil(height / unitTileSize) + 2
+
+        const count = cols * rows
+
+        const startX = -Math.floor(cols / 2) * unitTileSize
+        const startY = -Math.floor(rows / 2) * unitTileSize
+
+        return {
+            count,
+            cols,
+            rows,
+            tileWorldSize,
+            onePixelInWorld,
+            pixelToUnit,
+            startX,
+            startY,
+            unitTileSize,
+            updateInstances: (mesh: THREE.InstancedMesh) => {
+                // [기본 배치만 수행] 가로폭은 rain 애니메이션에서 적용
+                const tempObject = new THREE.Object3D()
+
+                let idx = 0
+                for (let col = 0; col < cols; col++) {
+                    for (let row = 0; row < rows; row++) {
+                        // 기본 위치 설정 (Y축만 픽셀 정렬)
+                        const yWorld = startY + (row * unitTileSize)
+                        const yPixel = Math.round(yWorld / pixelToUnit)
+                        const y = yPixel * pixelToUnit
+
+                        // X 위치는 rain 애니메이션에서 계산할 것이므로 기본값만 설정
+                        const x = startX + (col * unitTileSize)
+
+                        tempObject.position.set(x, y, 0)
+                        tempObject.scale.set(tileWorldSize, tileWorldSize, 1)
+                        tempObject.rotation.set(0, 0, 0)
+                        tempObject.updateMatrix()
+                        mesh.setMatrixAt(idx++, tempObject.matrix)
+                    }
+                }
+
+                mesh.instanceMatrix.needsUpdate = true
+            }
+        }
+    }, [viewport.width, viewport.height, size.width, tileSize])
+
+    // ============================================
+    // [ARCHIVED] Snow Mode 함수 - 아카이빙됨
+    // ============================================
+    /*
+    const buildSnowTileState = useCallback((): SnowTileState => ({
+        phase: 'waiting',
+        timer: 0,
+        delay: randomRange(SNOW_RESPAWN_DELAY_MIN, SNOW_RESPAWN_DELAY_MAX),
+        fallDuration: randomRange(SNOW_FALL_DURATION_MIN, SNOW_FALL_DURATION_MAX),
+        fadeInDuration: SNOW_FADE_IN_DURATION,
+        fadeInHoldDuration: SNOW_FADE_IN_HOLD_DURATION,
+        fadeOutDuration: SNOW_FADE_OUT_DURATION,
+        landedDuration: SNOW_LANDED_DURATION,
+        fallingFadeOutDuration: SNOW_FALLING_FADE_OUT_DURATION,
+        holdDuration: 0,
+        minScale: SNOW_MIN_SCALE * randomRange(0.9, 1.1),
+        wobbleSeed: Math.random() * Math.PI * 2,
+        wobbleSpeed: randomRange(0.7, 1.3),  // 랜덤 wobble 속도
+        wobbleAmount: randomRange(0.05, 0.12),  // 랜덤 wobble 강도
+        rotationSpeed: SNOW_ROTATION_SPEED * randomRange(0.5, 1.5) * (Math.random() > 0.5 ? 1 : -1),  // 랜덤 회전 속도 및 방향
+        swaySpeed: randomRange(0.2, 0.5),  // 랜덤 sway 속도
+        swayDistance: tileWorldSize * SNOW_SWAY_DISTANCE,
+        slideDirection: Math.random() > 0.5 ? 1 : -1,  // 랜덤 방향 (-1: 왼쪽, 1: 오른쪽)
+        offsetX: 0,
+        offsetY: 0,
+        rotationZ: 0,
+        dynamicScale: 1,
+        currentScale: 1,
+        currentOpacity: 0,
+        overlayOpacity: 0,
+        residueIntensity: 0,
+        settledLayers: 0,
+        layerLimit: 0,
+        fadeResidueFrom: 0,
+        fadeOverlayFrom: 0,
+        isActive: true,
+        respawnReady: true
+    }), [tileWorldSize])
+    */
 
     // [열별 고유 시드 초기화] cols가 변경될 때마다 새로운 랜덤 시드 생성
     useMemo(() => {
@@ -412,6 +546,7 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
         }
     }, [count, weatherMode])
 
+    /*
     const initializeSnowSystem = useCallback(() => {
         snowStateRef.current.tiles = Array.from({ length: count }, () => {
             const state = buildSnowTileState()
@@ -433,6 +568,21 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
             snowStateRef.current.tiles = []
         }
     }, [weatherMode, initializeSnowSystem])
+    */
+
+    // [Fog 모드] 초기화
+    useEffect(() => {
+        if (weatherMode === 'Fog') {
+            // 모든 타일을 블러 상태(clarity=0)로 초기화
+            fogStateRef.current.tiles = Array.from({ length: count }, () => ({
+                clarity: 0,
+                targetClarity: 0,
+                lastMouseTime: 0
+            }))
+        } else {
+            fogStateRef.current.tiles = []
+        }
+    }, [weatherMode, count])
 
     // [구조화] 날씨별 애니메이션을 위한 빈 함수 - 나중에 구현
     useFrame((state, delta) => {
@@ -443,9 +593,11 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
 
         // TODO: 날씨 타입 결정 로직
         const weatherType = weatherMode
+        /*
         if (weatherType === 'Snow' && snowStateRef.current.tiles.length === 0) {
             initializeSnowSystem()
         }
+        */
 
         // [Sunny 모드] 가로 애니메이션 비활성화
         if (weatherType === 'Sunny') {
@@ -532,39 +684,155 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
         }
 
         // [2단계] 날씨 애니메이션 적용 (가로폭 보정 포함)
-        updateWeatherAnimation(meshRef.current, state, delta)
+        updateWeatherAnimation(meshRef.current, state, delta, state.clock.elapsedTime)
     })
 
     // [애니메이션 구조] 날씨에 따른 타일 애니메이션
     const updateWeatherAnimation = (
         mesh: THREE.InstancedMesh,
         state: any,
-        delta: number
+        delta: number,
+        elapsedTime: number
     ) => {
         const weatherType = weatherMode
 
+        // [ARCHIVED] Snow 모드 - 필요 시 재활성화
+        /*
         if (weatherType === 'Snow') {
             updateSnowAnimation(mesh, delta, state.clock.elapsedTime)
             return
         }
+        */
 
-        // Non-Snow 모드에서는 기본 타일 렌더링 (검정 방지)
-        if (weatherType !== 'Snow' && weatherType !== 'Rainy') {
+        // [Fog 모드] Fake Blur 효과
+        if (weatherType === 'Fog') {
+            updateFogAnimation(mesh, delta, elapsedTime, state)
+            return
+        }
+
+        // 기본 타일 렌더링
+        if (weatherType !== 'Snow' && weatherType !== 'Rainy' && weatherType !== 'Fog') {
             // 기본 상태 유지 - instanceColor 없이 material color 사용
             mesh.instanceMatrix.needsUpdate = true
         }
 
+        // [ARCHIVED] Rain 모드 - 필요 시 재활성화
+        /*
         if (weatherType === 'Rainy') {
-            // TODO: 재활성화 시 updateRainAnimation(mesh, delta)
+            updateRainAnimation(mesh, delta)
             return
         }
+        */
 
-        // [ARCHIVED] Sunny 모드 - 필요 시 아래 호출을 해제해 사용
-        // if (weatherType === 'Sunny') {
-        //     updateSunnyAnimation(mesh, delta, state)
-        // }
+        // [ARCHIVED] Sunny 모드 - 필요 시 재활성화
+        /*
+        if (weatherType === 'Sunny') {
+            updateSunnyAnimation(mesh, delta, state)
+        }
+        */
     }
 
+    // [Fog 애니메이션] Fake Blur 효과 - 스케일 + 투명도
+    const updateFogAnimation = (
+        mesh: THREE.InstancedMesh,
+        delta: number,
+        elapsedTime: number,
+        state: any
+    ) => {
+        const tiles = fogStateRef.current.tiles
+        if (!tiles.length) return
+
+        // 마우스 월드 좌표
+        const mouseX = (state.mouse.x * viewport.width) / 2
+        const mouseY = (state.mouse.y * viewport.height) / 2
+
+        const tempMatrix = new THREE.Matrix4()
+        const tempPosition = new THREE.Vector3()
+        const tempQuaternion = new THREE.Quaternion()
+        const tempScale = new THREE.Vector3()
+
+        const geometry = mesh.geometry as THREE.InstancedBufferGeometry | undefined
+        const opacityAttribute = geometry?.getAttribute('instanceOpacity') as THREE.InstancedBufferAttribute | undefined
+        if (!opacityAttribute) return
+
+        let idx = 0
+        for (let col = 0; col < cols; col++) {
+            for (let row = 0; row < rows; row++) {
+                const tileState = tiles[idx]
+                if (!tileState) {
+                    tiles[idx] = {
+                        clarity: 0,
+                        targetClarity: 0,
+                        lastMouseTime: 0
+                    }
+                    idx++
+                    continue
+                }
+
+                // 타일 중심 좌표
+                const tileWorldX = startX + (col * unitTileSize) + unitTileSize / 2
+                const tileWorldY = startY + (row * unitTileSize) + unitTileSize / 2
+
+                // 마우스와의 거리
+                const dx = mouseX - tileWorldX
+                const dy = mouseY - tileWorldY
+                const distance = Math.sqrt(dx * dx + dy * dy)
+
+                // 마우스 영향 범위 내면 targetClarity = 1 (선명)
+                if (distance < FOG_CLEAR_RADIUS) {
+                    const influence = 1.0 - (distance / FOG_CLEAR_RADIUS)
+                    tileState.targetClarity = influence
+                    tileState.lastMouseTime = elapsedTime
+                } else {
+                    // 일정 시간 후 다시 블러
+                    if (elapsedTime - tileState.lastMouseTime > FOG_RETURN_DELAY) {
+                        tileState.targetClarity = 0.0
+                    }
+                }
+
+                // Lerp로 부드럽게 전환
+                const speed = tileState.targetClarity > tileState.clarity
+                    ? FOG_CLEAR_SPEED
+                    : FOG_RETURN_SPEED
+
+                tileState.clarity = THREE.MathUtils.lerp(
+                    tileState.clarity,
+                    tileState.targetClarity,
+                    delta * speed
+                )
+
+                // Fake Blur 효과 적용
+                const fogProgress = 1 - tileState.clarity  // 0=선명, 1=블러
+
+                // 1. 스케일 조정 (블러일수록 작아짐)
+                const scale = 0.9 + (fogProgress * FOG_SCALE_REDUCTION)
+                tempScale.set(
+                    tileWorldSize * scale,
+                    tileWorldSize * scale,
+                    1
+                )
+
+                // 2. 투명도 조정 (블러일수록 투명)
+                const opacity = 1.0 - (fogProgress * FOG_OPACITY_REDUCTION)
+                opacityAttribute.setX(idx, opacity)
+
+                // 3. 위치 및 회전 (기본값)
+                tempPosition.set(tileWorldX, tileWorldY, 0)
+                tempQuaternion.set(0, 0, 0, 1)
+
+                // 매트릭스 업데이트
+                tempMatrix.compose(tempPosition, tempQuaternion, tempScale)
+                mesh.setMatrixAt(idx, tempMatrix)
+
+                idx++
+            }
+        }
+
+        mesh.instanceMatrix.needsUpdate = true
+        opacityAttribute.needsUpdate = true
+    }
+
+    /*
     const beginSnowCycle = useCallback((tileState: SnowTileState) => {
         tileState.phase = 'fadeIn'
         tileState.timer = 0
@@ -577,7 +845,9 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
         tileState.offsetY = 0
         tileState.respawnReady = false
     }, [])
+    */
 
+    /*
     const updateSnowAnimation = (
         mesh: THREE.InstancedMesh,
         delta: number,
@@ -825,6 +1095,7 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
         mesh.instanceMatrix.needsUpdate = true
         opacityAttribute.needsUpdate = true
     }
+    */
 
     // ============================================
     // [ARCHIVED] Rain 애니메이션 - 아카이빙됨

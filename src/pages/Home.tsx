@@ -46,7 +46,7 @@ const Home: React.FC = () => {
         <div className="nav-left">
           {weather.data ? (
             <>
-              <div style={{ fontSize: '20px'}}>Seoul, {weather.data.weather[0].main}</div>
+              <div style={{ fontSize: '20px' }}>Seoul, {weather.data.weather[0].main}</div>
               <div style={{ display: 'flex', gap: '16px', fontSize: '14px', fontWeight: '300', marginTop: '-2px' }}>
                 <span>{Math.round(weather.data.main.temp)}°C</span>
                 <span>{weather.data.main.humidity}%</span>
@@ -54,12 +54,12 @@ const Home: React.FC = () => {
               </div>
             </>
           ) : (
-            <div style={{ fontSize: '20px'}}>Seoul, Bzzzzzt...</div>
+            <div style={{ fontSize: '20px' }}>Seoul, Bzzzzzt...</div>
           )}
         </div>
         <div className="nav-right">Say Hi</div>
       </nav>
-      <GridBackground tileSize={360} weatherMode="Snow" />
+      <GridBackground tileSize={360} weatherMode="Fog" />
       <TextTicker />
 
       {/* Weather data will be used for design in next steps */}
