@@ -6,6 +6,7 @@ import GridBackground from '../components/GridBackground'
 import type { WeatherMode } from '../components/GridBackground'
 import TextTicker from '../components/TextTicker'
 import ScrambleText from '../components/ScrambleText'
+import LoadingScreen from '../components/LoadingScreen'
 import './Home.css'
 import LogoS from '../assets/logo_mxrw.svg';
 import PlusBtn from '../assets/plus_btn.svg';
@@ -19,6 +20,7 @@ const Home: React.FC = () => {
   const [isWeatherModalOpen, setIsWeatherModalOpen] = useState(false)
   const [selectedWeatherMode, setSelectedWeatherMode] = useState<WeatherMode | 'Live'>('Live')
   const [scrambleTrigger, setScrambleTrigger] = useState(0)
+  const [isSiteLoading, setIsSiteLoading] = useState(true)
   const weatherStatusRef = useRef<HTMLDivElement>(null)
 
   // 실제 날씨 데이터를 4가지 배경 모드로 매핑하는 함수
@@ -104,6 +106,16 @@ const Home: React.FC = () => {
 
   return (
     <div className="home">
+      <AnimatePresence mode="wait">
+        {isSiteLoading && (
+          <LoadingScreen
+            key="loader"
+            onLoadingComplete={() => setIsSiteLoading(false)}
+            minDuration={8000} // 최소 로딩 시간
+          />
+        )}
+      </AnimatePresence>
+
       <nav className="home-nav">
         <div className="nav-left">
           <div
