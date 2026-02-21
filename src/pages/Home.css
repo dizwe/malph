@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=MuseoModerno:wght@100..900&display=swap');
+
+
 .home {
   position: relative;
   width: 100%;
@@ -18,7 +21,117 @@
   z-index: 10;
 }
 
-.nav-left,
+.bottom-info {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  z-index: 10;
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+}
+
+.bottom-info-right-group {
+  display: flex;
+  /* 요소들을 가로(기본값)로 나열 */
+  align-items: center;
+  /* 세로 정렬이 필요할 경우 추가 */
+  gap: 18px;
+}
+
+.bottom-info-right-dash {
+  width: 20px;
+  height: 1px;
+  background-color: #222222;
+  display: inline-block;
+  /* 다른 요소와 나란히 배치 */
+  vertical-align: middle;
+  /* 주변 텍스트와 높이 맞춤 */
+}
+
+.bottom-info-left-group {
+  display: flex;
+  /* 요소들을 가로(기본값)로 나열 */
+  align-items: center;
+  /* 세로 정렬이 필요할 경우 추가 */
+  gap: 50px;
+}
+
+.nav-left {
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 24px;
+  color: #222222;
+}
+
+.weather-status {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.weather-status::after {
+  content: '';
+  position: absolute;
+  bottom: 0px;
+  left: 0;
+  width: 0;
+  height: 1.5px;
+  background-color: #222222;
+  transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.weather-status:hover::after {
+  width: 100%;
+}
+
+.weather-selector-modal {
+  position: absolute;
+  top: calc(100% + 15px);
+  left: 0;
+  background-color: #222222;
+  padding: 14px 16px;
+  border-radius: 0px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 100;
+  min-width: 90px;
+  /* box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); */
+  /* backdrop-filter: blur(10px); */
+}
+
+.weather-option {
+  color: #ffffff;
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  text-align: left;
+  letter-spacing: 0.2px;
+}
+
+.weather-option:hover {
+  opacity: 0.6;
+}
+
+.nav-left-sub {
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-weight: 300;
+  font-size: 13px;
+  color: #222222;
+  display: flex;
+  gap: 24px;
+  letter-spacing: 0.4px;
+  line-height: 2;
+}
+
 .nav-right {
   font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   font-weight: 400;
@@ -28,31 +141,35 @@
   transition: opacity 0.3s ease;
 }
 
-.nav-left:hover,
-.nav-right:hover {
-  opacity: 0.6;
-}
 
 
 .malph-works {
-  /* Position handled in TextTicker.tsx */
-  /* position: fixed; */
-  /* bottom: 24px; */
-  /* left: 30px; */
-  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-  font-weight: 100;
-  font-size: 200px;
-  letter-spacing: -1px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  /* 화면 전체 너비 */
+  height: 100vh;
+  /* 화면 전체 높이 */
+
+  display: flex;
+  justify-content: center;
+  /* 가로 중앙 */
+  align-items: center;
+  /* 세로 중앙 */
+
+  /* 기존 스타일 유지 */
+  font-family: 'MuseoModerno', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  /* 개별 스타일은 TextTicker.tsx에서 주입됨 */
   color: #222222;
   line-height: 0.8;
   z-index: 2;
   pointer-events: none;
   user-select: none;
-  /* GPU 가속 활성화 */
+
+  /* GPU 가속 */
   transform: translateZ(0);
   will-change: transform;
-.glitch-char {
-  position: relative;
 }
 
 /* ::before - 빨간 잔상 (기본 상태: 투명)
@@ -92,11 +209,13 @@
 
 /* [변화 시에만] 글리치 활성화 - 단발적 노이즈 효과 */
 [class*="glitch-active-"]::before {
-  animation: glitch-before 0.3s ease-out 1; /* 1회만 실행 */
+  animation: glitch-before 0.3s ease-out 1;
+  /* 1회만 실행 */
 }
 
 [class*="glitch-active-"]::after {
-  animation: glitch-after 0.3s ease-out 1; /* 1회만 실행 */
+  animation: glitch-after 0.3s ease-out 1;
+  /* 1회만 실행 */
 }
 
 /* [애니메이션] 단발적 노이즈 효과
@@ -124,16 +243,20 @@
 @media (max-width: 1400px) {
   .malph-works {
     font-size: 160px;
-    bottom: 60px;
-    left: 60px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    /* 본인 크기의 절반만큼 역이동하여 완전 중앙화 */
+    bottom: auto;
   }
 }
 
 @media (max-width: 1024px) {
   .malph-works {
     font-size: 120px;
-    bottom: 50px;
-    left: 50px;
+    /* bottom: 50px;
+      left: 50px; */
   }
 }
 
@@ -141,15 +264,15 @@
 
   .malph-works {
     font-size: 80px;
-    bottom: 40px;
-    left: 40px;
+    /* bottom: 40px;
+      left: 40px; */
   }
 }
 
 @media (max-width: 480px) {
   .malph-works {
     font-size: 60px;
-    bottom: 30px;
-    left: 30px;
+    /* bottom: 30px;
+      left: 30px; */
   }
-}}
+}

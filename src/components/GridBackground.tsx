@@ -1,9 +1,10 @@
 import React, { useLayoutEffect, useRef, useMemo, useEffect, useCallback } from 'react'
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+// Fog 모드
 import FogBackground from './FogBackground'
 
-type WeatherMode = 'Sunny' | 'Rainy' | 'Snow' | 'Fog' | (string & {})
+export type WeatherMode = 'Sunny' | 'Rainy' | 'Snow' | 'Fog' | 'Windy' | (string & {})
 
 type SnowPhase = 'falling' | 'landed' | 'fallingFadeOut' | 'fadeOut' | 'waiting' | 'fadeIn' | 'fadeInHold'
 
@@ -51,26 +52,44 @@ interface SnowTileState {
 interface GridBackgroundProps {
     tileSize?: number
     tileColor?: string
+    tileOpacity?: number
     backgroundColor?: string
     weatherMode?: WeatherMode
 }
 
-const WEATHER_STYLE_PRESETS: Record<string, { tileColor: string; backgroundColor: string }> = {
+// 수정 전: Record<string, { tileColor: string; backgroundColor: string }>
+// 수정 후: tileOpacity 추가 및 Sunny의 콤마 에러 수정
+// 수정 후: tileOpacity 및 tileSize 추가
+const WEATHER_STYLE_PRESETS: Record<string, { tileColor: string; backgroundColor: string; tileOpacity: number; tileSize: number }> = {
     Sunny: {
         tileColor: '#f7f7f7',
-        backgroundColor: '#e3e3e3'
+        backgroundColor: '#e3e3e3',
+        tileOpacity: 0.6,
+        tileSize: 260
     },
     Rainy: {
         tileColor: '#f7f7f7',
-        backgroundColor: '#ebebeb'
+        backgroundColor: '#ebebeb',
+        tileOpacity: 1.0,
+        tileSize: 300
     },
     Snow: {
         tileColor: '#f7f7f7',
-        backgroundColor: '#dddddd'
+        backgroundColor: '#dddddd',
+        tileOpacity: 1.0,
+        tileSize: 100
     },
     Fog: {
         tileColor: '#f7f7f7',
-        backgroundColor: '#ebebeb'
+        backgroundColor: '#ebebeb',
+        tileOpacity: 1.0,
+        tileSize: 200
+    },
+    Windy: {
+        tileColor: '#f7f7f7',
+        backgroundColor: '#e8e8e8',
+        tileOpacity: 1.0,
+        tileSize: 360
     }
 }
 
@@ -85,7 +104,7 @@ const SceneBackground: React.FC<{ color: string }> = ({ color }) => {
     return null
 }
 
-const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundColor: string; weatherMode: WeatherMode }> = ({ tileSize, tileColor, backgroundColor, weatherMode }) => {
+const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundColor: string; weatherMode: WeatherMode; tileOpacity: number }> = ({ tileSize, tileColor, backgroundColor, weatherMode, tileOpacity }) => {
     const { viewport, size, gl } = useThree()
     const meshRef = useRef<THREE.InstancedMesh>(null)
 
@@ -110,10 +129,7 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
     const WIDTH_PAUSE_DURATION_MAX = 14.0 // 가로 멈춤 시간 최대값 (초)
     const ROW_CASCADE_DELAY = 0.1   // 위에서 아래로 전이되는 지연 시간 (초/행)
 
-    // ============================================
-    // [ARCHIVED] Snow Mode 파라미터 - 아카이빙됨
-    // ============================================
-    /*
+    // ===== Snow Mode 파라미터 =====
     const SNOW_ACTIVE_RATIO = 0.8       // 동시에 활성화된 눈송이 비율
     const SNOW_RESPAWN_DELAY_MIN = 0.5   // 재생성 최소 대기 시간
     const SNOW_RESPAWN_DELAY_MAX = 3.5   // 재생성 최대 대기 시간
@@ -123,14 +139,13 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
     const SNOW_FALL_DURATION_MIN = 8.0   // 낙하 최소 시간 (느리게)
     const SNOW_FALL_DURATION_MAX = 12.0  // 낙하 최대 시간 (느리게)
     const SNOW_LANDED_DURATION = 1.5     // 바닥에 머무는 시간
-    const SNOW_LANDED_SLIDE_STRENGTH = 50.0  // 바닥 미끄러짐 강도 (높을수록 많이 미끄러짐)
+    const SNOW_LANDED_SLIDE_STRENGTH = 14.0  // 바닥 미끄러짐 강도 (높을수록 많이 미끄러짐)
     const SNOW_FALLING_FADE_OUT_DURATION = 4  // 잔설 페이드아웃 시간
     const SNOW_FADE_OUT_DURATION = 0.05   // 페이드아웃 시간
-    const SNOW_MIN_SCALE = 0.12          // 최소 스케일
+    const SNOW_MIN_SCALE = 0.08          // 최소 스케일
     const SNOW_ROTATION_SPEED = 0.3     // 회전 속도
     const SNOW_SWAY_SPEED = 0.1          // 좌우 스웨이 속도
-    const SNOW_SWAY_DISTANCE = 0.5      // 좌우 스웨이 거리
-    */
+    const SNOW_SWAY_DISTANCE = 0.8      // 좌우 스웨이 거리
 
     const randomRange = (min: number, max: number) => min + Math.random() * (max - min)
     const easeOutCubic = (t: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3)
@@ -158,9 +173,9 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
     const SUN_DRIFT_RANGE = viewportShortSide * 0.2 // 태양 드리프트 반경
     const SUN_DRIFT_INTERVAL_MIN = 2.0  // 드리프트 방향 전환 최소 간격 (초)
     const SUN_DRIFT_INTERVAL_MAX = 3.0  // 드리프트 방향 전환 최대 간격 (초)
-    const SUN_MOUSE_CAPTURE_RADIUS = viewportShortSide * 0.4 // 마우스 제어가 활성화되는 반경
-    const SUN_MOUSE_MAX_OFFSET = viewportShortSide * 0.5     // 마우스 추적 시 허용되는 최대 이동 반경
-    const SUN_MOUSE_FOLLOW_SMOOTHNESS = 0.6                  // 마우스 추적 시 lerp 속도
+    const SUN_MOUSE_CAPTURE_RADIUS = viewportShortSide * 0.7 // 마우스 제어가 활성화되는 반경
+    const SUN_MOUSE_MAX_OFFSET = viewportShortSide * 0.8     // 마우스 추적 시 허용되는 최대 이동 반경
+    const SUN_MOUSE_FOLLOW_SMOOTHNESS = 0.3                  // 마우스 추적 시 lerp 속도
 
     // 스프링 물리 파라미터 - 단단한 금속 자석 물리
     const SPRING_STIFFNESS = 0.4     // 스프링 강성 - 빳빳한 힘 (0.2~0.4)
@@ -213,7 +228,7 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
     // [Snow 모드] 타일 상태 및 투명도 버퍼
     const snowStateRef = useRef<{ tiles: SnowTileState[] }>({ tiles: [] })
 
-    // [Fog 모드] 타일 상태
+    // [Fog 모드] 상태
     const fogStateRef = useRef<{ tiles: FogTileState[] }>({ tiles: [] })
 
     // [Sunny 모드] 마우스 추적 및 태양 상태
@@ -308,18 +323,14 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
         }
     }, [viewport.width, viewport.height, size.width, tileSize])
 
-    // ===== Fog Mode 파라미터 (Fake Blur) =====
+    // ===== Fog Mode 파라미터 =====
     const FOG_CLEAR_RADIUS = unitTileSize * 1.0  // 마우스 영향 반경 (타일 2.5개 크기)
-    const FOG_CLEAR_SPEED = 3.0           // 안개 걷히는 속도 (빠르게)
+    const FOG_CLEAR_SPEED = 2.4           // 안개 걷히는 속도 (빠르게)
     const FOG_RETURN_SPEED = 1.5          // 안개 돌아오는 속도 (느리게)
     const FOG_RETURN_DELAY = 0.5          // 안개 돌아오기 전 대기 시간 (초)
     const FOG_SCALE_REDUCTION = 0.1      // 스케일 감소량 (15%)
     const FOG_OPACITY_REDUCTION = 0.95     // 투명도 감소량 (70%)
 
-    // ============================================
-    // [ARCHIVED] Snow Mode 함수 - 아카이빙됨
-    // ============================================
-    /*
     const buildSnowTileState = useCallback((): SnowTileState => ({
         phase: 'waiting',
         timer: 0,
@@ -354,111 +365,7 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
         isActive: true,
         respawnReady: true
     }), [tileWorldSize])
-    */
 
-    // [열별 고유 시드 초기화] cols가 변경될 때마다 새로운 랜덤 시드 생성
-    useMemo(() => {
-        // Convert pixel values to world units
-        const pixelToUnit = viewport.width / size.width
-
-        // 1px에 해당하는 월드 단위
-        const onePixelInWorld = 1 * pixelToUnit
-
-        // 전체 칸 크기 (360px)
-        const unitTileSize = tileSize * pixelToUnit
-
-        // 실제 타일 크기 = 격자 빡빡하게 붙임
-        const tileWorldSize = unitTileSize - onePixelInWorld
-
-        const width = viewport.width
-        const height = viewport.height
-
-        // Calculate number of tiles needed with padding
-        const cols = Math.ceil(width / unitTileSize) + 2
-        const rows = Math.ceil(height / unitTileSize) + 2
-
-        const count = cols * rows
-
-        const startX = -Math.floor(cols / 2) * unitTileSize
-        const startY = -Math.floor(rows / 2) * unitTileSize
-
-        return {
-            count,
-            cols,
-            rows,
-            tileWorldSize,
-            onePixelInWorld,
-            pixelToUnit,
-            startX,
-            startY,
-            unitTileSize,
-            updateInstances: (mesh: THREE.InstancedMesh) => {
-                // [기본 배치만 수행] 가로폭은 rain 애니메이션에서 적용
-                const tempObject = new THREE.Object3D()
-
-                let idx = 0
-                for (let col = 0; col < cols; col++) {
-                    for (let row = 0; row < rows; row++) {
-                        // 기본 위치 설정 (Y축만 픽셀 정렬)
-                        const yWorld = startY + (row * unitTileSize)
-                        const yPixel = Math.round(yWorld / pixelToUnit)
-                        const y = yPixel * pixelToUnit
-
-                        // X 위치는 rain 애니메이션에서 계산할 것이므로 기본값만 설정
-                        const x = startX + (col * unitTileSize)
-
-                        tempObject.position.set(x, y, 0)
-                        tempObject.scale.set(tileWorldSize, tileWorldSize, 1)
-                        tempObject.rotation.set(0, 0, 0)
-                        tempObject.updateMatrix()
-                        mesh.setMatrixAt(idx++, tempObject.matrix)
-                    }
-                }
-
-                mesh.instanceMatrix.needsUpdate = true
-            }
-        }
-    }, [viewport.width, viewport.height, size.width, tileSize])
-
-    // ============================================
-    // [ARCHIVED] Snow Mode 함수 - 아카이빙됨
-    // ============================================
-    /*
-    const buildSnowTileState = useCallback((): SnowTileState => ({
-        phase: 'waiting',
-        timer: 0,
-        delay: randomRange(SNOW_RESPAWN_DELAY_MIN, SNOW_RESPAWN_DELAY_MAX),
-        fallDuration: randomRange(SNOW_FALL_DURATION_MIN, SNOW_FALL_DURATION_MAX),
-        fadeInDuration: SNOW_FADE_IN_DURATION,
-        fadeInHoldDuration: SNOW_FADE_IN_HOLD_DURATION,
-        fadeOutDuration: SNOW_FADE_OUT_DURATION,
-        landedDuration: SNOW_LANDED_DURATION,
-        fallingFadeOutDuration: SNOW_FALLING_FADE_OUT_DURATION,
-        holdDuration: 0,
-        minScale: SNOW_MIN_SCALE * randomRange(0.9, 1.1),
-        wobbleSeed: Math.random() * Math.PI * 2,
-        wobbleSpeed: randomRange(0.7, 1.3),  // 랜덤 wobble 속도
-        wobbleAmount: randomRange(0.05, 0.12),  // 랜덤 wobble 강도
-        rotationSpeed: SNOW_ROTATION_SPEED * randomRange(0.5, 1.5) * (Math.random() > 0.5 ? 1 : -1),  // 랜덤 회전 속도 및 방향
-        swaySpeed: randomRange(0.2, 0.5),  // 랜덤 sway 속도
-        swayDistance: tileWorldSize * SNOW_SWAY_DISTANCE,
-        slideDirection: Math.random() > 0.5 ? 1 : -1,  // 랜덤 방향 (-1: 왼쪽, 1: 오른쪽)
-        offsetX: 0,
-        offsetY: 0,
-        rotationZ: 0,
-        dynamicScale: 1,
-        currentScale: 1,
-        currentOpacity: 0,
-        overlayOpacity: 0,
-        residueIntensity: 0,
-        settledLayers: 0,
-        layerLimit: 0,
-        fadeResidueFrom: 0,
-        fadeOverlayFrom: 0,
-        isActive: true,
-        respawnReady: true
-    }), [tileWorldSize])
-    */
 
     // [열별 고유 시드 초기화] cols가 변경될 때마다 새로운 랜덤 시드 생성
     useMemo(() => {
@@ -547,7 +454,6 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
         }
     }, [count, weatherMode])
 
-    /*
     const initializeSnowSystem = useCallback(() => {
         snowStateRef.current.tiles = Array.from({ length: count }, () => {
             const state = buildSnowTileState()
@@ -569,9 +475,7 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
             snowStateRef.current.tiles = []
         }
     }, [weatherMode, initializeSnowSystem])
-    */
 
-    // [Fog 모드] 초기화
     useEffect(() => {
         if (weatherMode === 'Fog') {
             // 모든 타일을 블러 상태(clarity=0)로 초기화
@@ -594,13 +498,11 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
 
         // TODO: 날씨 타입 결정 로직
         const weatherType = weatherMode
-        /*
         if (weatherType === 'Snow' && snowStateRef.current.tiles.length === 0) {
             initializeSnowSystem()
         }
-        */
 
-        // [Sunny 모드] 가로 애니메이션 비활성화
+        // [Windy 모드] 가로 애니메이션 활성화
         if (weatherType === 'Sunny') {
             // 모든 열의 너비를 1.0으로 고정
             const columnWidths: number[] = Array.from({ length: cols }, () => 1.0)
@@ -697,17 +599,26 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
     ) => {
         const weatherType = weatherMode
 
-        // [ARCHIVED] Snow 모드 - 필요 시 재활성화
-        /*
         if (weatherType === 'Snow') {
             updateSnowAnimation(mesh, delta, state.clock.elapsedTime)
             return
         }
-        */
 
-        // [Fog 모드] Fake Blur 효과
+        // [Fog 모드]
         if (weatherType === 'Fog') {
             updateFogAnimation(mesh, delta, elapsedTime, state)
+            return
+        }
+
+        // [Rain 모드]
+        if (weatherType === 'Rainy') {
+            updateRainAnimation(mesh, delta)
+            return
+        }
+
+        // [Sunny 모드]
+        if (weatherType === 'Sunny') {
+            updateSunnyAnimation(mesh, delta, state)
             return
         }
 
@@ -716,24 +627,9 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
             // 기본 상태 유지 - instanceColor 없이 material color 사용
             mesh.instanceMatrix.needsUpdate = true
         }
-
-        // [ARCHIVED] Rain 모드 - 필요 시 재활성화
-        /*
-        if (weatherType === 'Rainy') {
-            updateRainAnimation(mesh, delta)
-            return
-        }
-        */
-
-        // [ARCHIVED] Sunny 모드 - 필요 시 재활성화
-        /*
-        if (weatherType === 'Sunny') {
-            updateSunnyAnimation(mesh, delta, state)
-        }
-        */
     }
 
-    // [Fog 애니메이션] Fake Blur 효과 - 스케일 + 투명도
+    // [Fog 애니메이션]
     const updateFogAnimation = (
         mesh: THREE.InstancedMesh,
         delta: number,
@@ -833,7 +729,6 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
         opacityAttribute.needsUpdate = true
     }
 
-    /*
     const beginSnowCycle = useCallback((tileState: SnowTileState) => {
         tileState.phase = 'fadeIn'
         tileState.timer = 0
@@ -846,9 +741,7 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
         tileState.offsetY = 0
         tileState.respawnReady = false
     }, [])
-    */
 
-    /*
     const updateSnowAnimation = (
         mesh: THREE.InstancedMesh,
         delta: number,
@@ -1096,23 +989,21 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
         mesh.instanceMatrix.needsUpdate = true
         opacityAttribute.needsUpdate = true
     }
-    */
 
     // ============================================
     // [ARCHIVED] Rain 애니메이션 - 아카이빙됨
     // ============================================
-    /*
     // [Rain 애니메이션] 빗방울이 떨어지는 효과 + 가로폭 보정
     const updateRainAnimation = (mesh: THREE.InstancedMesh, delta: number) => {
         const tempMatrix = new THREE.Matrix4()
         const tempPosition = new THREE.Vector3()
         const tempRotation = new THREE.Quaternion()
         const tempScale = new THREE.Vector3()
-        
+
         // [1단계] 누적 X 좌표 사전 계산 (1px 간격 강제) + 중앙 정렬
         const columnXPositions: number[] = []
         const columnScaledWidths: number[] = []
-        
+
         // 먼저 전체 너비 계산
         let totalGridWidth = 0
         for (let col = 0; col < cols; col++) {
@@ -1122,46 +1013,46 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
             totalGridWidth += scaledTileWidth
             if (col < cols - 1) totalGridWidth += onePixelInWorld // 간격 추가 (마지막 열 제외)
         }
-        
+
         // 중앙 정렬을 위한 시작 X 계산
         let cumulativeX = -totalGridWidth / 2
-        
+
         for (let col = 0; col < cols; col++) {
             const scaledTileWidth = columnScaledWidths[col]
-            
+
             // 이 열의 중심 X 좌표 = 현재 누적 위치 + (타일 너비 / 2)
             const centerX = cumulativeX + (scaledTileWidth / 2)
             columnXPositions.push(centerX)
-            
+
             // 다음 열을 위해 누적 (현재 너비 + 1px 간격)
             cumulativeX += scaledTileWidth + onePixelInWorld
         }
-        
+
         // [동적 딜레이 범위 업데이트] 일정 시간마다 랜덤하게 변경
         dynamicDelayRangeRef.current.timer += delta
         if (dynamicDelayRangeRef.current.timer >= DELAY_RANGE_CHANGE_INTERVAL) {
             dynamicDelayRangeRef.current.timer = 0
             dynamicDelayRangeRef.current.current = DELAY_RANGE_MIN + Math.random() * (DELAY_RANGE_MAX - DELAY_RANGE_MIN)
         }
-        
+
         // [2단계] 각 타일에 대해 가로폭과 세로 수축을 모두 적용
         let idx = 0
         for (let col = 0; col < cols; col++) {
             const baseX = columnXPositions[col]
             const currentColumnWidth = columnScaledWidths[col]
-            
+
             for (let row = 0; row < rows; row++) {
                 const state = rainStateRef.current
-                
+
                 // 기본 Y 위치 (픽셀 정렬)
                 const yWorld = startY + (row * unitTileSize)
                 const yPixel = Math.round(yWorld / pixelToUnit)
                 const baseY = yPixel * pixelToUnit
-                
+
                 // Delay 처리
                 if (state.delay[idx] > 0) {
                     state.delay[idx] -= delta
-                    
+
                     // phase에 따라 delay 중 처리 분기
                     if (state.phase[idx] === 'regenerating') {
                         // regenerating 시작 전 PAUSE_DURATION: 타일 완전히 숨김 (배경 보임)
@@ -1181,59 +1072,58 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
                     idx++
                     continue
                 }
-                
+
                 const speed = state.speed[idx]
                 let scaleY = 1.0
                 let pivotOffset = 0
-                
+
                 // 세로 애니메이션 진행
                 if (state.phase[idx] === 'falling') {
                     // [떨어지는 페이즈] scaleY: 1 → 0 (타일이 위에서부터 줄어듦)
                     // [가속도 효과] 느리게 시작하다가 점점 빠르게
                     const acceleration = state.progress[idx] * state.progress[idx]
                     state.progress[idx] += (delta / FALL_DURATION) * speed * (0.5 + acceleration * 4)
-                    
+
                     if (state.progress[idx] >= 1) {
                         state.progress[idx] = 1
                         state.phase[idx] = 'regenerating'
                         state.delay[idx] = PAUSE_DURATION
                     }
-                    
+
                     scaleY = 1 - state.progress[idx]
                     // [Pivot: 하단 고정] 중심을 아래로 이동
                     pivotOffset = -tileWorldSize * (1 - scaleY) * 0.5
-                    
+
                 } else if (state.phase[idx] === 'regenerating') {
                     // [재생성 페이즈] scaleY: 0 → 1 (타일이 위에서부터 아래로 채워짐)
                     // [가속도 효과] 매우 느리게 시작하다가 점점 빠르게
                     const acceleration = (1 - state.progress[idx]) * (1 - state.progress[idx])
                     state.progress[idx] -= (delta / REGEN_DURATION) * speed * (0.2 + acceleration * 6)
-                    
+
                     if (state.progress[idx] <= 0) {
                         state.progress[idx] = 0
                         state.phase[idx] = 'falling'
                         state.delay[idx] = AFTER_REGEN_PAUSE + Math.random() * dynamicDelayRangeRef.current.current + ROW_CASCADE_DELAY * (idx % 10)
                     }
-                    
+
                     scaleY = 1 - state.progress[idx]
                     // [Pivot: 상단 고정] 중심을 아래로 이동
                     pivotOffset = tileWorldSize * (1 - scaleY) * 0.5
                 }
-                
+
                 // [매트릭스 업데이트] position, quaternion, scale을 모두 계산 후 compose
                 tempPosition.set(baseX, baseY + pivotOffset, 0)
                 tempScale.set(currentColumnWidth, tileWorldSize * scaleY, 1)
                 tempRotation.set(0, 0, 0, 1)
                 tempMatrix.compose(tempPosition, tempRotation, tempScale)
                 mesh.setMatrixAt(idx, tempMatrix)
-                
+
                 idx++
             }
         }
-        
+
         mesh.instanceMatrix.needsUpdate = true
     }
-    */
     // ============================================
 
     // [ARCHIVED] Rain 타일 Material - 아카이빙됨
@@ -1258,6 +1148,7 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
         })
 
         material.onBeforeCompile = (shader) => {
+            shader.uniforms.uGlobalOpacity = { value: tileOpacity }
             shader.vertexShader = shader.vertexShader
                 .replace(
                     '#include <common>',
@@ -1271,19 +1162,19 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
             shader.fragmentShader = shader.fragmentShader
                 .replace(
                     '#include <common>',
-                    '#include <common>\nvarying float vInstanceOpacity;'
+                    '#include <common>\nuniform float uGlobalOpacity;\nvarying float vInstanceOpacity;'
                 )
                 .replace(
                     '#include <alphatest_fragment>',
                     `
                         #include <alphatest_fragment>
-                        diffuseColor.a *= vInstanceOpacity;
+                        diffuseColor.a *= (vInstanceOpacity * uGlobalOpacity);
                     `
                 )
         }
 
         return material
-    }, [weatherMode])
+    }, [weatherMode, tileOpacity])
 
     // Snow 모드에서 instanceColor 버퍼 제거 - material 고정 색상만 사용
     useLayoutEffect(() => {
@@ -1675,19 +1566,18 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
 
     return (
         <>
-            {/* [Fog 모드] 동적 안개 배경 */}
             {weatherMode === 'Fog' && <FogBackground unitTileSize={unitTileSize} />}
 
-            {/* [ARCHIVED] Sunny 태양 레이어 */}
-            {/*
-            <mesh 
-                ref={sunMeshRef} 
-                position={[0, 0, -0.5]}
-            >
-                <circleGeometry args={[viewport.width * 0.26, 60]} />
-                <primitive object={sunShaderMaterial} attach="material" />
-            </mesh>
-            */}
+            {/* Sunny 태양 레이어 */}
+            {weatherMode === 'Sunny' && (
+                <mesh
+                    ref={sunMeshRef}
+                    position={[0, 0, -0.5]}
+                >
+                    <circleGeometry args={[viewport.width * 0.26, 60]} />
+                    <primitive object={sunShaderMaterial} attach="material" />
+                </mesh>
+            )}
 
             {/* 타일 그리드 */}
             <instancedMesh ref={meshRef} args={[undefined, undefined, count]} frustumCulled={false}>
@@ -1699,13 +1589,16 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
 }
 
 const GridBackground: React.FC<GridBackgroundProps> = ({
-    tileSize = 360,
+    tileSize,
     tileColor,
+    tileOpacity,
     backgroundColor,
     weatherMode = 'Sunny',
 }) => {
     const preset = WEATHER_STYLE_PRESETS[weatherMode] ?? WEATHER_STYLE_PRESETS.Sunny
+    const resolvedTileSize = tileSize ?? preset.tileSize
     const resolvedTileColor = tileColor ?? preset.tileColor
+    const resolvedTileOpacity = tileOpacity ?? preset.tileOpacity
     const resolvedBackgroundColor = backgroundColor ?? preset.backgroundColor
     return (
         <div style={{
@@ -1734,7 +1627,7 @@ const GridBackground: React.FC<GridBackgroundProps> = ({
                 resize={{ scroll: false, debounce: { scroll: 50, resize: 0 } }}
             >
                 <SceneBackground color={resolvedBackgroundColor} />
-                <TileInstances tileSize={tileSize} tileColor={resolvedTileColor} backgroundColor={resolvedBackgroundColor} weatherMode={weatherMode} />
+                <TileInstances tileSize={resolvedTileSize} tileColor={resolvedTileColor} backgroundColor={resolvedBackgroundColor} weatherMode={weatherMode} tileOpacity={resolvedTileOpacity} />
             </Canvas>
         </div>
     )
