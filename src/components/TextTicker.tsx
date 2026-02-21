@@ -19,12 +19,12 @@ const TICKER_CONFIG = {
         duration: 0.4,
     },
     glitch: {
-        amplitude: [0, -4, 4, -4, 4, -3, 2, 0],
-        duration: 0.4,
+        amplitude: [0, -3, 3, -3, 3, -2, 2, 0],
+        duration: 0.3,
     },
     transition: {
         duration: 0,
-        holdTime: 10000
+        holdTime: 14000
     },
     logoAdjust: {
         scale: 0.82
@@ -44,32 +44,32 @@ interface TextOption {
 const texts: TextOption[] = [
     {
         text: "MW",
-        fontSize: '60px',
-        fontWeight: '400',
+        fontSize: '110px',
+        fontWeight: '300',
         letterSpacing: '-1px',
         overrides: { 1: <span style={{ transform: 'rotate(180deg)', display: 'inline-block' }}>M</span> }
     },
     {
-        text: "MXRW", fontSize: '60px', fontWeight: '400', letterSpacing: '-2px',
+        text: "MXRW", fontSize: '90px', fontWeight: '300', letterSpacing: '-2px',
         overrides: {
             1: <img src={LogoX} alt="X" style={{ width: `${TICKER_CONFIG.logoAdjust.scale}em`, height: 'auto', display: 'block' }} />
         }
     },
     {
         text: "MALCOLM\nRALPH",
-        fontSize: '60px',
-        fontWeight: '400',
-        letterSpacing: ['-1px', '0.5px'],
+        fontSize: '80px',
+        fontWeight: '300',
+        letterSpacing: ['-1.4px', '1px'],
         lineHeight: '1',
-        gap: '-10px',
+        gap: '-6px',
     },
     {
         text: "MARPH\nWORKS",
-        fontSize: '60px',
-        fontWeight: '400',
-        letterSpacing: ['0.76px', '-0.4px'],
+        fontSize: '90px',
+        fontWeight: '300',
+        letterSpacing: ['0.76px', '-0.7px'],
         lineHeight: '1',
-        gap: '-10px',
+        gap: '-16px',
         overrides: { 6: <span style={{ transform: 'rotate(180deg)', display: 'inline-block' }}>M</span> }
     },
 ]

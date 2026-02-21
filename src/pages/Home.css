@@ -243,20 +243,14 @@
 @media (max-width: 1400px) {
   .malph-works {
     font-size: 160px;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    /* 본인 크기의 절반만큼 역이동하여 완전 중앙화 */
-    bottom: auto;
+
   }
 }
 
 @media (max-width: 1024px) {
   .malph-works {
     font-size: 120px;
-    /* bottom: 50px;
-      left: 50px; */
+
   }
 }
 

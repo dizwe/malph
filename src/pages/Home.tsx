@@ -5,6 +5,7 @@ import type { WeatherState } from '../types/weather'
 import GridBackground from '../components/GridBackground'
 import type { WeatherMode } from '../components/GridBackground'
 import TextTicker from '../components/TextTicker'
+import ScrambleText from '../components/ScrambleText'
 import './Home.css'
 import LogoS from '../assets/logo_mxrw.svg';
 import PlusBtn from '../assets/plus_btn.svg';
@@ -17,6 +18,7 @@ const Home: React.FC = () => {
   })
   const [isWeatherModalOpen, setIsWeatherModalOpen] = useState(false)
   const [selectedWeatherMode, setSelectedWeatherMode] = useState<WeatherMode | 'Live'>('Live')
+  const [scrambleTrigger, setScrambleTrigger] = useState(0)
   const weatherStatusRef = useRef<HTMLDivElement>(null)
 
   // 실제 날씨 데이터를 4가지 배경 모드로 매핑하는 함수
@@ -104,44 +106,61 @@ const Home: React.FC = () => {
     <div className="home">
       <nav className="home-nav">
         <div className="nav-left">
-          {weather.data ? (
-            <>
-              <div
-                ref={weatherStatusRef}
-                style={{ fontSize: '20px', position: 'relative' }}
+          <div
+            ref={weatherStatusRef}
+            style={{ fontSize: '20px', position: 'relative' }}
+          >
+            Seoul, {weather.data ? (
+              <span
+                className="weather-status"
+                onClick={() => setIsWeatherModalOpen(!isWeatherModalOpen)}
+                onMouseEnter={() => setScrambleTrigger(prev => prev + 1)}
               >
-                Seoul, <span className="weather-status" onClick={() => setIsWeatherModalOpen(!isWeatherModalOpen)}>{weather.data.weather[0].main}</span>
+                <ScrambleText
+                  text={weather.data.weather[0].main}
+                  trigger={scrambleTrigger}
+                />
+              </span>
+            ) : (
+              <span>Bzzzzzt...</span>
+            )}
 
-                <AnimatePresence>
-                  {isWeatherModalOpen && (
-                    <motion.div
-                      className="weather-selector-modal"
-                      initial={{ opacity: 0, y: -16, x: 60 }}
-                      animate={{ opacity: 1, y: -8, x: 60 }}
-                      exit={{ opacity: 0, y: -16 }}
-                      transition={{ duration: 0.4, ease: 'easeOut' }}
-                    >
-                      <div
-                        className={`weather-option ${selectedWeatherMode === 'Live' ? 'active' : ''}`}
-                        onClick={() => { setSelectedWeatherMode('Live'); setIsWeatherModalOpen(false); }}
-                      >Live</div>
-                      <div className="weather-option" onClick={() => { setSelectedWeatherMode('Sunny'); setIsWeatherModalOpen(false); }}>Sunny</div>
-                      <div className="weather-option" onClick={() => { setSelectedWeatherMode('Rainy'); setIsWeatherModalOpen(false); }}>Rainy</div>
-                      <div className="weather-option" onClick={() => { setSelectedWeatherMode('Snow'); setIsWeatherModalOpen(false); }}>Snowy</div>
-                      <div className="weather-option" onClick={() => { setSelectedWeatherMode('Fog'); setIsWeatherModalOpen(false); }}>Cloudy</div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-              <div className="nav-left-sub">
+            <AnimatePresence>
+              {isWeatherModalOpen && (
+                <motion.div
+                  className="weather-selector-modal"
+                  initial={{ opacity: 0, y: -16, x: 60 }}
+                  animate={{ opacity: 1, y: -8, x: 60 }}
+                  exit={{ opacity: 0, y: -16 }}
+                  transition={{ duration: 0.4, ease: 'easeOut' }}
+                >
+                  <div
+                    className={`weather-option ${selectedWeatherMode === 'Live' ? 'active' : ''}`}
+                    onClick={() => { setSelectedWeatherMode('Live'); setIsWeatherModalOpen(false); }}
+                  >Live</div>
+                  <div className="weather-option" onClick={() => { setSelectedWeatherMode('Sunny'); setIsWeatherModalOpen(false); }}>Sunny</div>
+                  <div className="weather-option" onClick={() => { setSelectedWeatherMode('Rainy'); setIsWeatherModalOpen(false); }}>Rainy</div>
+                  <div className="weather-option" onClick={() => { setSelectedWeatherMode('Snow'); setIsWeatherModalOpen(false); }}>Snowy</div>
+                  <div className="weather-option" onClick={() => { setSelectedWeatherMode('Fog'); setIsWeatherModalOpen(false); }}>Cloudy</div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          <div className="nav-left-sub">
+            {weather.data ? (
+              <>
                 <span>{Math.round(weather.data.main.temp)}°C</span>
                 <span>{weather.data.main.humidity}%</span>
                 <span>{weather.data.wind.speed}m/s</span>
-              </div>
-            </>
-          ) : (
-            <div style={{ fontSize: '20px' }}>Seoul, Bzzzzzt...</div>
-          )}
+              </>
+            ) : (
+              <>
+                <span>Bzz</span>
+                <span>zzzz</span>
+                <span>zzzzt..</span>
+              </>
+            )}
+          </div>
         </div>
         <div className="nav-right">
           <img
@@ -158,14 +177,24 @@ const Home: React.FC = () => {
       </nav>
       <nav className="bottom-info">
         <div className="bottom-info-left-group">
-          <div className="bottom-info-left">Korea</div>
-          <div className="bottom-info-left">©2026 MARPH Works</div>
+          <div className="bottom-info-left">
+            <ScrambleText text="Korea" />
+          </div>
+          <div className="bottom-info-left">
+            <ScrambleText text="©2026 MARPH Works" />
+          </div>
         </div>
-        <div className="bottom-info-center">Build Anything. Everything.</div>
+        <div className="bottom-info-center">
+          <ScrambleText text="Build Anything. Everything." />
+        </div>
         <div className="bottom-info-right-group">
-          <div className="bottom-info-right">Say Hi</div>
+          <div className="bottom-info-right">
+            <ScrambleText text="Say Hi" />
+          </div>
           <div className="bottom-info-right-dash"></div>
-          <div className="bottom-info-right">Knock on Marph Works</div>
+          <div className="bottom-info-right">
+            <ScrambleText text="Knock on Marph Works" />
+          </div>
         </div>
       </nav>
 
