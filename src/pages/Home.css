@@ -323,7 +323,7 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 1400px) {
+/* @media (max-width: 1400px) {
   .malph-works {
     font-size: 160px;
   }
@@ -333,7 +333,7 @@
   .malph-works {
     font-size: 120px;
   }
-}
+} */
 
 @media (max-width: 768px) {
 
@@ -343,6 +343,11 @@
 
   .weather-status-container {
     font-size: 16px;
+    line-height: 1.2;
+  }
+
+  .home-subtext-content {
+    font-size: 18px;
   }
 
   .bottom-info {
@@ -402,18 +407,16 @@
   .malph-works {
     font-size: 80px;
   }
+
+  .home-subtext-custom,
+  .home-subtext-input {
+    font-size: 30px;
+    padding: 8px 20px 0 20px;
+  }
 }
 
-.home-subtext-content {
-  font-size: 20px;
-  padding: 0 20px;
-}
 
-.home-subtext-custom,
-.home-subtext-input {
-  font-size: 30px;
-  padding: 8px 20px 0 20px;
-}
+
 
 @media (max-width: 480px) {
   .malph-works {
