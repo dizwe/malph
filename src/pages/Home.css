@@ -69,13 +69,17 @@
   color: #222222;
 }
 
-.weather-status {
+.weather-status,
+.bottom-info-link,
+.bottom-info-link-regular {
   position: relative;
   display: inline-block;
   cursor: pointer;
 }
 
-.weather-status::after {
+.weather-status::after,
+.bottom-info-link::after,
+.bottom-info-link-regular::after {
   content: '';
   position: absolute;
   bottom: 0px;
@@ -86,7 +90,9 @@
   transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-.weather-status:hover::after {
+.weather-status:hover::after,
+.bottom-info-link:hover::after,
+.bottom-info-link-regular:hover::after {
   width: 100%;
 }
 
@@ -121,6 +127,10 @@
   opacity: 0.6;
 }
 
+.weather-status-container {
+  font-size: 20px;
+}
+
 .nav-left-sub {
   font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   font-weight: 300;
@@ -139,6 +149,12 @@
   color: #222222;
   cursor: pointer;
   transition: opacity 0.3s ease;
+}
+
+.bottom-info a {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 400;
 }
 
 
@@ -310,30 +326,97 @@
 @media (max-width: 1400px) {
   .malph-works {
     font-size: 160px;
-
   }
 }
 
 @media (max-width: 1024px) {
   .malph-works {
     font-size: 120px;
-
   }
 }
 
 @media (max-width: 768px) {
 
+  .home-nav {
+    padding: 20px 20px;
+  }
+
+  .weather-status-container {
+    font-size: 16px;
+  }
+
+  .bottom-info {
+    flex-direction: column;
+    padding: 20px 20px;
+    gap: 4px;
+    /* 3단 스택 사이의 간격 */
+    height: auto;
+    align-items: flex-start;
+  }
+
+  .bottom-info-left-group {
+    gap: 50px;
+    /* PC와 동일한 간격 */
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .bottom-info-right-group {
+    gap: 48px;
+    /* PC와 동일한 간격 */
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  /* Korea 및 Say Hi 다시 표시, Dash 숨김 */
+  .bottom-info-left:nth-child(1),
+  .bottom-info-right:nth-child(1) {
+    display: inline-block !important;
+  }
+
+  .bottom-info-right-dash {
+    display: none !important;
+  }
+
+  /* Reset fixed width for ScrambleText on mobile */
+  .bottom-info-link {
+    width: auto !important;
+    text-align: left !important;
+  }
+
+  /* Rearrange Order */
+  .bottom-info-center {
+    order: 1;
+    text-align: left;
+    width: 100%;
+  }
+
+  .bottom-info-right-group {
+    order: 2;
+  }
+
+  .bottom-info-left-group {
+    order: 3;
+  }
+
   .malph-works {
     font-size: 80px;
-    /* bottom: 40px;
-      left: 40px; */
   }
+}
+
+.home-subtext-content {
+  font-size: 20px;
+  padding: 0 20px;
+}
+
+.home-subtext-custom,
+.home-subtext-input {
+  font-size: 30px;
+  padding: 8px 20px 0 20px;
 }
 
 @media (max-width: 480px) {
   .malph-works {
     font-size: 60px;
-    /* bottom: 30px;
-      left: 30px; */
   }
 }

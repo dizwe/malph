@@ -28,7 +28,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadingComplete, minDur
     // 초기 그리드 조각 계산
     useEffect(() => {
         const segments: { type: 'h' | 'v', fixedPos: number, startPos: number, length: number, id: number, origin: string }[] = []
-        const gridSpacing = 240
+        const gridSpacing = window.innerWidth <= 768 ? 120 : 240
         const segmentLength = 60
         const width = window.innerWidth
         const height = window.innerHeight
@@ -133,7 +133,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadingComplete, minDur
                         key={seg.id}
                         initial={seg.type === 'h' ? { scaleX: 0, opacity: 0 } : { scaleY: 0, opacity: 0 }}
                         animate={seg.type === 'h' ? { scaleX: 1, opacity: 1 } : { scaleY: 1, opacity: 1 }}
-                        transition={{ duration: 0.15, ease: "easeOut" }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
                         style={{
                             position: 'absolute',
                             backgroundColor: '#343434',

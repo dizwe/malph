@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useMemo, useEffect, useCallback } from 'react'
+import React, { useLayoutEffect, useRef, useMemo, useEffect, useCallback, useState } from 'react'
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 // Fog 모드
@@ -60,36 +60,41 @@ interface GridBackgroundProps {
 // 수정 전: Record<string, { tileColor: string; backgroundColor: string }>
 // 수정 후: tileOpacity 추가 및 Sunny의 콤마 에러 수정
 // 수정 후: tileOpacity 및 tileSize 추가
-const WEATHER_STYLE_PRESETS: Record<string, { tileColor: string; backgroundColor: string; tileOpacity: number; tileSize: number }> = {
+const WEATHER_STYLE_PRESETS: Record<string, { tileColor: string; backgroundColor: string; tileOpacity: number; tileSize: number; mobileTileSize: number }> = {
     Sunny: {
         tileColor: '#f7f7f7',
         backgroundColor: '#e3e3e3',
         tileOpacity: 0.6,
-        tileSize: 260
+        tileSize: 260,
+        mobileTileSize: 130
     },
     Rainy: {
         tileColor: '#f7f7f7',
         backgroundColor: '#ebebeb',
         tileOpacity: 1.0,
-        tileSize: 300
+        tileSize: 300,
+        mobileTileSize: 150
     },
     Snow: {
         tileColor: '#f7f7f7',
         backgroundColor: '#dddddd',
         tileOpacity: 1.0,
-        tileSize: 100
+        tileSize: 100,
+        mobileTileSize: 100
     },
     Fog: {
         tileColor: '#f7f7f7',
         backgroundColor: '#ebebeb',
         tileOpacity: 1.0,
-        tileSize: 200
+        tileSize: 200,
+        mobileTileSize: 100
     },
     Windy: {
         tileColor: '#f7f7f7',
         backgroundColor: '#e8e8e8',
         tileOpacity: 1.0,
-        tileSize: 360
+        tileSize: 360,
+        mobileTileSize: 180
     }
 }
 
@@ -1597,8 +1602,17 @@ const GridBackground: React.FC<GridBackgroundProps> = ({
     backgroundColor,
     weatherMode = 'Sunny',
 }) => {
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
     const preset = WEATHER_STYLE_PRESETS[weatherMode] ?? WEATHER_STYLE_PRESETS.Sunny
-    const resolvedTileSize = tileSize ?? preset.tileSize
+    const resolvedTileSize = tileSize ?? (isMobile ? preset.mobileTileSize : preset.tileSize)
     const resolvedTileColor = tileColor ?? preset.tileColor
     const resolvedTileOpacity = tileOpacity ?? preset.tileOpacity
     const resolvedBackgroundColor = backgroundColor ?? preset.backgroundColor

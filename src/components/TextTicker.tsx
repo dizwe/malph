@@ -50,7 +50,7 @@ const texts: TextOption[] = [
         overrides: { 1: <span style={{ transform: 'rotate(180deg)', display: 'inline-block' }}>M</span> }
     },
     {
-        text: "MXR", fontSize: '86px', fontWeight: '200', letterSpacing: '4px',
+        text: "MXR", fontSize: '86px', fontWeight: '200', letterSpacing: '0px',
         overrides: {
             1: <img src={LogoX} alt="X" style={{ width: `${TICKER_CONFIG.logoAdjust.scale}em`, height: 'auto', display: 'block' }} />
         }
@@ -62,6 +62,14 @@ const texts: TextOption[] = [
         letterSpacing: ['-1.8px', '-1px'],
         lineHeight: '1',
         gap: '-7px',
+    },
+    {
+        text: 'Build Anything\nEverything',
+        fontSize: '42px',
+        fontWeight: '300',
+        letterSpacing: ['-1.4px', '-1.4px'],
+        lineHeight: '1',
+        gap: '4px',
     },
     {
         text: "MARPH\nWORKS",
@@ -197,14 +205,19 @@ const AnimatedSubtext: React.FC<{ text: string; loopKey: number; className?: str
     );
 };
 
-const TextTicker: React.FC = () => {
+interface TextTickerProps {
+    subText: string;
+    setSubText: React.Dispatch<React.SetStateAction<string>>;
+}
+
+const TextTicker: React.FC<TextTickerProps> = ({ subText, setSubText }) => {
     const [index, setIndex] = useState(0)
     const [isEditing, setIsEditing] = useState(false)
-    const [subText, setSubText] = useState("How's where you are?")
     const [subtextKey, setSubtextKey] = useState(0)
     const [inputWidth, setInputWidth] = useState(120)
     const inputRef = useRef<HTMLInputElement>(null)
     const spanRef = useRef<HTMLSpanElement>(null)
+
 
     useEffect(() => {
         const timer = setInterval(() => {
