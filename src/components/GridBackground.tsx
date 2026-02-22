@@ -1588,6 +1588,8 @@ const TileInstances: React.FC<{ tileSize: number; tileColor: string; backgroundC
     )
 }
 
+import { motion, AnimatePresence } from 'framer-motion'
+
 const GridBackground: React.FC<GridBackgroundProps> = ({
     tileSize,
     tileColor,
@@ -1600,6 +1602,7 @@ const GridBackground: React.FC<GridBackgroundProps> = ({
     const resolvedTileColor = tileColor ?? preset.tileColor
     const resolvedTileOpacity = tileOpacity ?? preset.tileOpacity
     const resolvedBackgroundColor = backgroundColor ?? preset.backgroundColor
+
     return (
         <div style={{
             position: 'absolute',
@@ -1608,27 +1611,48 @@ const GridBackground: React.FC<GridBackgroundProps> = ({
             width: '100%',
             height: '100%',
             zIndex: 0,
-            backgroundColor: resolvedBackgroundColor,
+            overflow: 'hidden'
         }}>
-            <Canvas
-                orthographic
-                camera={{
-                    zoom: 1,
-                    position: [0, 0, 100],
-                    near: 0.1,
-                    far: 1000,
-                }}
-                style={{ width: '100%', height: '100%' }}
-                dpr={[1, 2]}
-                gl={{
-                    antialias: false,
-                    alpha: false,
-                }}
-                resize={{ scroll: false, debounce: { scroll: 50, resize: 0 } }}
-            >
-                <SceneBackground color={resolvedBackgroundColor} />
-                <TileInstances tileSize={resolvedTileSize} tileColor={resolvedTileColor} backgroundColor={resolvedBackgroundColor} weatherMode={weatherMode} tileOpacity={resolvedTileOpacity} />
-            </Canvas>
+            <AnimatePresence mode="popLayout">
+                <motion.div
+                    key={weatherMode}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 1.2, ease: "easeInOut" }}
+                    style={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundColor: resolvedBackgroundColor,
+                    }}
+                >
+                    <Canvas
+                        orthographic
+                        camera={{
+                            zoom: 1,
+                            position: [0, 0, 100],
+                            near: 0.1,
+                            far: 1000,
+                        }}
+                        style={{ width: '100%', height: '100%' }}
+                        dpr={[1, 2]}
+                        gl={{
+                            antialias: false,
+                            alpha: false,
+                        }}
+                        resize={{ scroll: false, debounce: { scroll: 50, resize: 0 } }}
+                    >
+                        <SceneBackground color={resolvedBackgroundColor} />
+                        <TileInstances
+                            tileSize={resolvedTileSize}
+                            tileColor={resolvedTileColor}
+                            backgroundColor={resolvedBackgroundColor}
+                            weatherMode={weatherMode}
+                            tileOpacity={resolvedTileOpacity}
+                        />
+                    </Canvas>
+                </motion.div>
+            </AnimatePresence>
         </div>
     )
 }

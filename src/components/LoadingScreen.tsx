@@ -89,9 +89,13 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadingComplete, minDur
 
     return (
         <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: "easeInOut" }}
             style={{
                 position: 'fixed',
                 inset: 0,
+                backgroundColor: '#222222',
                 zIndex: 9999,
                 display: 'flex',
                 flexDirection: 'column',
@@ -103,145 +107,77 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadingComplete, minDur
                 overflow: 'hidden'
             }}
         >
-            {/* Left Panel */}
-            <motion.div
-                exit={{ x: '-100%', opacity: 0 }}
-                transition={{ duration: 0.8, ease: [0.7, 0, 0.84, 0] }} // easeIn 가속도 효과
-                style={{
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: '50%',
-                    backgroundColor: '#222222',
-                    zIndex: 0,
-                    overflow: 'hidden'
-                }}
-            >
-                <div style={{ position: 'absolute', left: 0, top: 0, width: '100vw', height: '100vh', pointerEvents: 'none' }}>
-                    {currentSegments.map(seg => (
-                        <motion.div
-                            key={`l-${seg.id}`}
-                            initial={seg.type === 'h' ? { scaleX: 0, opacity: 0 } : { scaleY: 0, opacity: 0 }}
-                            animate={seg.type === 'h' ? { scaleX: 1, opacity: 1 } : { scaleY: 1, opacity: 1 }}
-                            transition={{ duration: 0.4, ease: "easeOut" }}
-                            style={{
-                                position: 'absolute',
-                                backgroundColor: '#343434',
-                                transformOrigin: seg.origin,
-                                ...(seg.type === 'h' ? {
-                                    top: seg.fixedPos,
-                                    left: seg.startPos,
-                                    width: seg.length,
-                                    height: '1px'
-                                } : {
-                                    left: seg.fixedPos,
-                                    top: seg.startPos,
-                                    height: seg.length,
-                                    width: '1px'
-                                })
-                            }}
-                        />
-                    ))}
-                </div>
-            </motion.div>
+            {/* 그리드 배경 레이어 (조각들) */}
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+                {currentSegments.map(seg => (
+                    <motion.div
+                        key={seg.id}
+                        initial={seg.type === 'h' ? { scaleX: 0, opacity: 0 } : { scaleY: 0, opacity: 0 }}
+                        animate={seg.type === 'h' ? { scaleX: 1, opacity: 1 } : { scaleY: 1, opacity: 1 }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        style={{
+                            position: 'absolute',
+                            backgroundColor: '#343434',
+                            transformOrigin: seg.origin,
+                            ...(seg.type === 'h' ? {
+                                top: seg.fixedPos,
+                                left: seg.startPos,
+                                width: seg.length,
+                                height: '1px'
+                            } : {
+                                left: seg.fixedPos,
+                                top: seg.startPos,
+                                height: seg.length,
+                                width: '1px'
+                            })
+                        }}
+                    />
+                ))}
+            </div>
 
-            {/* Right Panel */}
             <motion.div
-                exit={{ x: '100%', opacity: 0 }}
-                transition={{ duration: 0.8, ease: [0.7, 0, 0.84, 0] }} // easeIn 가속도 효과
-                style={{
-                    position: 'absolute',
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: '50%',
-                    backgroundColor: '#222222',
-                    zIndex: 0,
-                    overflow: 'hidden'
-                }}
-            >
-                <div style={{ position: 'absolute', right: 0, top: 0, width: '100vw', height: '100vh', pointerEvents: 'none' }}>
-                    {currentSegments.map(seg => (
-                        <motion.div
-                            key={`r-${seg.id}`}
-                            initial={seg.type === 'h' ? { scaleX: 0, opacity: 0 } : { scaleY: 0, opacity: 0 }}
-                            animate={seg.type === 'h' ? { scaleX: 1, opacity: 1 } : { scaleY: 1, opacity: 1 }}
-                            transition={{ duration: 0.4, ease: "easeOut" }}
-                            style={{
-                                position: 'absolute',
-                                backgroundColor: '#343434',
-                                transformOrigin: seg.origin,
-                                ...(seg.type === 'h' ? {
-                                    top: seg.fixedPos,
-                                    left: seg.startPos,
-                                    width: seg.length,
-                                    height: '1px'
-                                } : {
-                                    left: seg.fixedPos,
-                                    top: seg.startPos,
-                                    height: seg.length,
-                                    width: '1px'
-                                })
-                            }}
-                        />
-                    ))}
-                </div>
-            </motion.div>
-
-            {/* Content Container (Center) */}
-            <motion.div
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.4 }}
-                style={{
-                    zIndex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center'
-                }}
-            >
-                <motion.div
-                    initial="hidden"
-                    animate="visible"
-                    variants={{
-                        visible: {
-                            transition: {
-                                staggerChildren: 0.13
-                            }
+                initial="hidden"
+                animate="visible"
+                variants={{
+                    visible: {
+                        transition: {
+                            staggerChildren: 0.13
                         }
-                    }}
-                    style={{
-                        fontSize: '24px',
-                        fontWeight: 300,
-                        marginBottom: '4px',
-                        letterSpacing: '0',
-                        display: 'flex'
-                    }}
-                >
-                    {"how's where you are".split("").map((char, index) => (
-                        <motion.span
-                            key={index}
-                            variants={{
-                                hidden: { opacity: 0, y: 8 },
-                                visible: { opacity: 1, y: 0 }
-                            }}
-                            transition={{ duration: 0.5, ease: "easeOut" }}
-                            style={{ display: 'inline-block', whiteSpace: 'pre' }}
-                        >
-                            {char === " " ? "\u00A0" : char}
-                        </motion.span>
-                    ))}
-                </motion.div>
+                    }
+                }}
+                style={{
+                    fontSize: '24px',
+                    fontWeight: 300,
+                    marginBottom: '4px',
+                    letterSpacing: '0',
+                    display: 'flex',
+                    zIndex: 1 // 그리드 위에 표시
+                }}
+            >
+                {"how's where you are".split("").map((char, index) => (
+                    <motion.span
+                        key={index}
+                        variants={{
+                            hidden: { opacity: 0, y: 8 },
+                            visible: { opacity: 1, y: 0 }
+                        }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
+                        style={{ display: 'inline-block', whiteSpace: 'pre' }}
+                    >
+                        {char === " " ? "\u00A0" : char}
+                    </motion.span>
+                ))}
+            </motion.div>
 
-                <motion.div
-                    style={{
-                        fontSize: '20px',
-                        fontWeight: 300,
-                        opacity: 0.8
-                    }}
-                >
-                    {progress}%
-                </motion.div>
+            <motion.div
+                style={{
+                    fontSize: '20px',
+                    fontWeight: 300,
+                    opacity: 0.8,
+                    zIndex: 1 // 그리드 위에 표시
+                }}
+            >
+                {progress}%
             </motion.div>
         </motion.div>
     )

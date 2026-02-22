@@ -111,7 +111,7 @@ const Home: React.FC = () => {
           <LoadingScreen
             key="loader"
             onLoadingComplete={() => setIsSiteLoading(false)}
-            minDuration={8000} // 최소 로딩 시간
+            minDuration={6000} // 최소 로딩 시간
           />
         )}
       </AnimatePresence>
