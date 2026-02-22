@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=MuseoModerno:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=MuseoModerno:wght@100..900&family=Reenie+Beanie&display=swap');
 
 
 .home {
@@ -238,6 +238,73 @@
 }
 ===========================================================================
 */
+
+/* Main Subtext Styling */
+.home-subtext-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 215px;
+  margin-top: 0px;
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  color: #222222;
+  cursor: pointer;
+}
+
+.home-subtext-bracket {
+  font-size: 30px;
+  font-weight: 100;
+  line-height: 1;
+}
+
+.home-subtext-content {
+  font-size: 15px;
+  font-weight: 400;
+  padding: 0 30px;
+  white-space: nowrap;
+  line-height: 2.3;
+  margin-top: 4px;
+}
+
+.home-subtext-custom,
+.home-subtext-input {
+  font-family: 'Reenie Beanie', cursive;
+  font-size: 30px;
+  font-weight: 400;
+  color: #222222;
+  padding: 8px 30px 0 30px;
+  /* 패딩 통일: 20px */
+  margin: 0;
+  display: inline-block;
+  box-sizing: border-box;
+  line-height: 1;
+}
+
+.home-subtext-custom {
+  font-family: 'Reenie Beanie', cursive;
+  /* font-size: 30px; */
+  /* margin-top: 0; */
+  /* padding: 0 15px; */
+  /* padding-top: 10px; */
+  /* min-width: 50px; */
+}
+
+.home-subtext-input {
+  background: transparent;
+  border: none;
+  /* font-family: 'Reenie Beanie', cursive;
+  font-size: 30px;
+  font-weight: 400; */
+  color: #222222;
+  text-align: center;
+  /* padding: 0 15px; */
+  margin: 0;
+  outline: none;
+  line-height: 1;
+  /* width: auto; */
+  /* min-width: 250px; */
+  /* padding-top: 10px; */
+}
 
 /* Responsive adjustments */
 @media (max-width: 1400px) {

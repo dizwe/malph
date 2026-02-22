@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import { motion, AnimatePresence, usePresence } from 'framer-motion'
 // CSS 경로가 프로젝트 환경과 맞는지 확인하세요.
 import '../pages/Home.css'
@@ -45,31 +45,31 @@ const texts: TextOption[] = [
     {
         text: "MW",
         fontSize: '110px',
-        fontWeight: '300',
+        fontWeight: '200',
         letterSpacing: '-1px',
         overrides: { 1: <span style={{ transform: 'rotate(180deg)', display: 'inline-block' }}>M</span> }
     },
     {
-        text: "MXRW", fontSize: '90px', fontWeight: '300', letterSpacing: '-2px',
+        text: "MXR", fontSize: '86px', fontWeight: '200', letterSpacing: '4px',
         overrides: {
             1: <img src={LogoX} alt="X" style={{ width: `${TICKER_CONFIG.logoAdjust.scale}em`, height: 'auto', display: 'block' }} />
         }
     },
     {
-        text: "MALCOLM\nRALPH",
-        fontSize: '80px',
+        text: "malcolm\nralph",
+        fontSize: '58px',
         fontWeight: '300',
-        letterSpacing: ['-1.4px', '1px'],
+        letterSpacing: ['-1.8px', '-1px'],
         lineHeight: '1',
-        gap: '-6px',
+        gap: '-7px',
     },
     {
         text: "MARPH\nWORKS",
-        fontSize: '90px',
+        fontSize: '60px',
         fontWeight: '300',
-        letterSpacing: ['0.76px', '-0.7px'],
+        letterSpacing: ['0.76px', '-0.6px'],
         lineHeight: '1',
-        gap: '-16px',
+        gap: '-11px',
         overrides: { 6: <span style={{ transform: 'rotate(180deg)', display: 'inline-block' }}>M</span> }
     },
 ]
@@ -164,77 +164,224 @@ const ScrambleChar: React.FC<ScrambleCharProps> = ({ char, index, totalLength, c
     )
 }
 
+const AnimatedSubtext: React.FC<{ text: string; loopKey: number; className?: string }> = ({ text, loopKey, className }) => {
+    return (
+        <motion.div
+            key={loopKey}
+            initial="hidden"
+            animate="visible"
+            variants={{
+                visible: {
+                    transition: {
+                        staggerChildren: 0.05
+                    }
+                }
+            }}
+            className={className}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+            {text.split("").map((char, i) => (
+                <motion.span
+                    key={i}
+                    variants={{
+                        hidden: { opacity: 0, y: 6 },
+                        visible: { opacity: 1, y: 0 }
+                    }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    style={{ display: 'inline-block', whiteSpace: 'pre' }}
+                >
+                    {char}
+                </motion.span>
+            ))}
+        </motion.div>
+    );
+};
+
 const TextTicker: React.FC = () => {
     const [index, setIndex] = useState(0)
+    const [isEditing, setIsEditing] = useState(false)
+    const [subText, setSubText] = useState("How's where you are?")
+    const [subtextKey, setSubtextKey] = useState(0)
+    const [inputWidth, setInputWidth] = useState(120)
+    const inputRef = useRef<HTMLInputElement>(null)
+    const spanRef = useRef<HTMLSpanElement>(null)
 
     useEffect(() => {
         const timer = setInterval(() => {
-            setIndex((prevIndex) => (prevIndex + 1) % texts.length)
+            if (!isEditing) {
+                setIndex((prevIndex) => (prevIndex + 1) % texts.length)
+            }
         }, TICKER_CONFIG.transition.holdTime)
         return () => clearInterval(timer)
-    }, [])
+    }, [isEditing])
+
+    useEffect(() => {
+        if (!isEditing && subText === "How's where you are?") {
+            const interval = setInterval(() => {
+                setSubtextKey(prev => prev + 1);
+            }, 7500); // 4초 텀 + 애니메이션 시간 고려
+            return () => clearInterval(interval);
+        }
+    }, [isEditing, subText])
+
+    useLayoutEffect(() => {
+        if (spanRef.current) {
+            // CSS 패딩이 포함된 offsetWidth를 그대로 사용하여 인풋 너비를 설정합니다.
+            const measuredWidth = spanRef.current.offsetWidth
+            setInputWidth(Math.max(measuredWidth, 100))
+        }
+    }, [subText, isEditing])
+
+    useEffect(() => {
+        if (isEditing && inputRef.current) {
+            inputRef.current.focus()
+            inputRef.current.select()
+        }
+    }, [isEditing])
 
     const currentTextObj = texts[index]
 
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            setIsEditing(false)
+        }
+    }
+
     return (
         <div className="malph-works" style={{ position: 'fixed', inset: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', pointerEvents: 'none', zIndex: 999 }}>
-            <AnimatePresence mode="wait">
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '120px' }}>
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={index}
+                            initial={{ opacity: 1 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 1 }}
+                            transition={{ duration: 0 }}
+                            style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                textAlign: 'center',
+                                fontSize: currentTextObj.fontSize,
+                                fontWeight: currentTextObj.fontWeight,
+                                lineHeight: currentTextObj.lineHeight || '1',
+                            }}
+                        >
+                            {currentTextObj.text.split('\n').map((line, lineIdx) => {
+                                const currentLineSpacing = Array.isArray(currentTextObj.letterSpacing)
+                                    ? currentTextObj.letterSpacing[lineIdx]
+                                    : currentTextObj.letterSpacing;
+
+                                return (
+                                    <div
+                                        key={lineIdx}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            marginTop: lineIdx !== 0 ? (currentTextObj.gap || '0px') : '0px',
+                                            letterSpacing: currentLineSpacing
+                                        }}
+                                    >
+                                        {line.split('').map((char, charIdx) => {
+                                            const fullIndex = currentTextObj.text.split('\n')
+                                                .slice(0, lineIdx)
+                                                .reduce((acc, curr) => acc + curr.length + 1, 0) + charIdx;
+
+                                            return (
+                                                <ScrambleChar
+                                                    key={`${index}-${lineIdx}-${charIdx}`}
+                                                    char={char}
+                                                    index={fullIndex}
+                                                    totalLength={currentTextObj.text.length}
+                                                    customNode={currentTextObj.overrides?.[fullIndex]}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })}
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
+
+                {/* 서브텍스트: [ How's where you are? ] */}
                 <motion.div
-                    key={index}
-                    initial={{ opacity: 1 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 1 }}
-                    transition={{ duration: 0 }}
-                    style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        textAlign: 'center',
-                        fontSize: currentTextObj.fontSize,
-                        fontWeight: currentTextObj.fontWeight,
-                        lineHeight: currentTextObj.lineHeight || '1',
+                    className="home-subtext-group"
+                    onClick={() => {
+                        if (subText === "How's where you are?") {
+                            setSubText("")
+                        }
+                        setIsEditing(true)
                     }}
+                    style={{ pointerEvents: 'auto' }}
+                    layout
                 >
-                    {currentTextObj.text.split('\n').map((line, lineIdx) => {
-                        const currentLineSpacing = Array.isArray(currentTextObj.letterSpacing)
-                            ? currentTextObj.letterSpacing[lineIdx]
-                            : currentTextObj.letterSpacing;
+                    <motion.span className="home-subtext-bracket" layout transition={{ type: "spring", stiffness: 200, damping: 30 }}>[</motion.span>
 
-                        return (
-                            <div
-                                key={lineIdx}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    marginTop: lineIdx !== 0 ? (currentTextObj.gap || '0px') : '0px',
-                                    letterSpacing: currentLineSpacing
-                                }}
+                    {/* 너비 측정을 위한 숨겨진 요소 */}
+                    <span
+                        ref={spanRef}
+                        className="home-subtext-input"
+                        style={{
+                            position: 'absolute',
+                            visibility: 'hidden',
+                            height: 'auto',
+                            width: 'auto',
+                            whiteSpace: 'pre',
+                            pointerEvents: 'none',
+                            zIndex: -1
+                        }}
+                    >
+                        {subText || ""}
+                    </span>
+
+                    {isEditing ? (
+                        <motion.input
+                            ref={inputRef}
+                            layout
+                            key="subtext-input"
+                            className="home-subtext-input"
+                            value={subText}
+                            placeholder=""
+                            onChange={(e) => setSubText(e.target.value)}
+                            onBlur={() => {
+                                setIsEditing(false)
+                                if (subText.trim() === "") {
+                                    setSubText("How's where you are?")
+                                }
+                            }}
+                            onKeyDown={handleKeyDown}
+                            style={{ width: `${inputWidth}px`, overflow: 'visible' }}
+                            transition={{ type: "spring", stiffness: 200, damping: 30 }}
+                        />
+                    ) : (
+                        subText === "How's where you are?" ? (
+                            <AnimatedSubtext
+                                text={subText}
+                                loopKey={subtextKey}
+                                className="home-subtext-content"
+                            />
+                        ) : (
+                            <motion.span
+                                layout
+                                key="subtext-display"
+                                className={`home-subtext-content ${subText !== "How's where you are?" ? "home-subtext-custom" : ""}`}
+                                transition={{ type: "spring", stiffness: 200, damping: 30 }}
                             >
-                                {line.split('').map((char, charIdx) => {
-                                    const fullIndex = currentTextObj.text.split('\n')
-                                        .slice(0, lineIdx)
-                                        .reduce((acc, curr) => acc + curr.length + 1, 0) + charIdx;
-
-                                    return (
-                                        <ScrambleChar
-                                            key={`${index}-${lineIdx}-${charIdx}`}
-                                            char={char}
-                                            index={fullIndex}
-                                            totalLength={currentTextObj.text.length}
-                                            customNode={currentTextObj.overrides?.[fullIndex]}
-                                        />
-                                    );
-                                })}
-                            </div>
-                        );
-                    })}
+                                {subText}
+                            </motion.span>
+                        )
+                    )}
+                    <motion.span className="home-subtext-bracket" layout transition={{ type: "spring", stiffness: 200, damping: 30 }}>]</motion.span>
                 </motion.div>
-            </AnimatePresence>
+            </div>
         </div>
     )
-} // <- 이 괄호가 누락되어 에러가 났었습니다.
+}
+// <- 이 괄호가 누락되어 에러가 났었습니다.
 
 export default TextTicker;
 

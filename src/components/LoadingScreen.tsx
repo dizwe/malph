@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
+import logoX from '../assets/logo_x.svg'
+import logoXwh from '../assets/logo_x_wh.svg'
 
 interface LoadingScreenProps {
     onLoadingComplete: () => void
@@ -10,18 +12,24 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadingComplete, minDur
     const [progress, setProgress] = useState(0)
     const [gridSegments, setGridSegments] = useState<{
         type: 'h' | 'v',
-        fixedPos: number, // 가로선일땐 y, 세로선일땐 x
-        startPos: number, // 선이 시작되는 위치
+        fixedPos: number,
+        startPos: number,
         length: number,
         id: number,
         origin: string
     }[]>([])
+    const [sentenceIndex, setSentenceIndex] = useState(0)
+
+    const sentences = [
+        "how's where you are",
+        "Malcolm X Ralph"
+    ]
 
     // 초기 그리드 조각 계산
     useEffect(() => {
         const segments: { type: 'h' | 'v', fixedPos: number, startPos: number, length: number, id: number, origin: string }[] = []
         const gridSpacing = 240
-        const segmentLength = 60 // 조각 하나당 길이
+        const segmentLength = 60
         const width = window.innerWidth
         const height = window.innerHeight
 
@@ -29,7 +37,6 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadingComplete, minDur
         const hOrigins = ['left', 'right']
         const vOrigins = ['top', 'bottom']
 
-        // 가로 선들을 조각으로 분할
         for (let y = 0; y <= height; y += gridSpacing) {
             for (let x = 0; x < width; x += segmentLength) {
                 segments.push({
@@ -43,7 +50,6 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadingComplete, minDur
             }
         }
 
-        // 세로 선들을 조각으로 분할
         for (let x = 0; x <= width; x += gridSpacing) {
             for (let y = 0; y < height; y += segmentLength) {
                 segments.push({
@@ -57,7 +63,6 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadingComplete, minDur
             }
         }
 
-        // 모든 조각을 무작위로 섞음
         const shuffled = [...segments].sort(() => Math.random() - 0.5)
         setGridSegments(shuffled)
     }, [])
@@ -68,7 +73,14 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadingComplete, minDur
         const updateProgress = () => {
             const currentTime = Date.now()
             const elapsed = currentTime - startTime
-            const nextProgress = Math.min(Math.floor((elapsed / minDuration) * 100), 100)
+
+            // t = 0 ~ 1 사이의 선형 비율
+            const t = Math.min(elapsed / minDuration, 1)
+
+            // 가속도 적용 (Ease-in): 처음엔 느리고 갈수록 빨라짐
+            // Math.pow(t, 1.7)을 통해 자연스러운 가속감 구현
+            const easedT = Math.pow(t, 1.7)
+            const nextProgress = Math.min(Math.floor(easedT * 100), 100)
 
             setProgress(nextProgress)
 
@@ -83,7 +95,15 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadingComplete, minDur
         return () => cancelAnimationFrame(animationId)
     }, [minDuration, onLoadingComplete])
 
-    // 현재 퍼센트에 따라 보여줄 조각의 개수 결정
+    // 문구 사이클링 로직
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setSentenceIndex((prev) => (prev + 1) % sentences.length)
+        }, 2500) // 3초마다 문구 교체 (애니메이션 시간 고려)
+
+        return () => clearInterval(timer)
+    }, [sentences.length])
+
     const visibleSegmentsCount = Math.floor((progress / 100) * gridSegments.length)
     const currentSegments = gridSegments.slice(0, visibleSegmentsCount)
 
@@ -107,14 +127,13 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadingComplete, minDur
                 overflow: 'hidden'
             }}
         >
-            {/* 그리드 배경 레이어 (조각들) */}
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
                 {currentSegments.map(seg => (
                     <motion.div
                         key={seg.id}
                         initial={seg.type === 'h' ? { scaleX: 0, opacity: 0 } : { scaleY: 0, opacity: 0 }}
                         animate={seg.type === 'h' ? { scaleX: 1, opacity: 1 } : { scaleY: 1, opacity: 1 }}
-                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        transition={{ duration: 0.15, ease: "easeOut" }}
                         style={{
                             position: 'absolute',
                             backgroundColor: '#343434',
@@ -135,46 +154,75 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadingComplete, minDur
                 ))}
             </div>
 
-            <motion.div
-                initial="hidden"
-                animate="visible"
-                variants={{
-                    visible: {
-                        transition: {
-                            staggerChildren: 0.13
-                        }
-                    }
-                }}
-                style={{
-                    fontSize: '24px',
-                    fontWeight: 300,
-                    marginBottom: '4px',
-                    letterSpacing: '0',
-                    display: 'flex',
-                    zIndex: 1 // 그리드 위에 표시
-                }}
-            >
-                {"how's where you are".split("").map((char, index) => (
-                    <motion.span
-                        key={index}
+            <div style={{ height: '40px', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1 }}>
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={sentenceIndex}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
                         variants={{
-                            hidden: { opacity: 0, y: 8 },
-                            visible: { opacity: 1, y: 0 }
+                            hidden: { opacity: 0 },
+                            visible: {
+                                opacity: 1,
+                                transition: {
+                                    staggerChildren: 0.08
+                                }
+                            },
+                            exit: {
+                                opacity: 0,
+                                transition: { duration: 0.5 }
+                            }
                         }}
-                        transition={{ duration: 0.5, ease: "easeOut" }}
-                        style={{ display: 'inline-block', whiteSpace: 'pre' }}
+                        style={{
+                            fontSize: '24px',
+                            fontWeight: 300,
+                            letterSpacing: '0',
+                            display: 'flex',
+                            alignItems: 'center'
+                        }}
                     >
-                        {char === " " ? "\u00A0" : char}
-                    </motion.span>
-                ))}
-            </motion.div>
+                        {sentences[sentenceIndex].split("").map((char, index) => {
+                            if (char === 'X' && sentences[sentenceIndex].includes("Malcolm X")) {
+                                return (
+                                    <motion.span
+                                        key={index}
+                                        variants={{
+                                            hidden: { opacity: 0, y: 8 },
+                                            visible: { opacity: 1, y: 0 }
+                                        }}
+                                        transition={{ duration: 0.2, ease: "easeOut" }}
+                                        style={{ display: 'inline-flex', alignItems: 'center', margin: '0 1px' }}
+                                    >
+                                        <img src={logoXwh} alt="X" style={{ height: '18px', width: 'auto' }} />
+                                    </motion.span>
+                                )
+                            }
+                            return (
+                                <motion.span
+                                    key={index}
+                                    variants={{
+                                        hidden: { opacity: 0, y: 8 },
+                                        visible: { opacity: 1, y: 0 }
+                                    }}
+                                    transition={{ duration: 0.4, ease: "easeOut" }}
+                                    style={{ display: 'inline-block', whiteSpace: 'pre' }}
+                                >
+                                    {char === " " ? "\u00A0" : char}
+                                </motion.span>
+                            )
+                        })}
+                    </motion.div>
+                </AnimatePresence>
+            </div>
 
             <motion.div
                 style={{
                     fontSize: '20px',
                     fontWeight: 300,
                     opacity: 0.8,
-                    zIndex: 1 // 그리드 위에 표시
+                    zIndex: 1,
+                    marginTop: '12px'
                 }}
             >
                 {progress}%

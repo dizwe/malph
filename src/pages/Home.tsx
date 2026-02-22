@@ -21,6 +21,7 @@ const Home: React.FC = () => {
   const [selectedWeatherMode, setSelectedWeatherMode] = useState<WeatherMode | 'Live'>('Live')
   const [scrambleTrigger, setScrambleTrigger] = useState(0)
   const [isSiteLoading, setIsSiteLoading] = useState(true)
+  const [entranceTrigger, setEntranceTrigger] = useState(0)
   const weatherStatusRef = useRef<HTMLDivElement>(null)
 
   // 실제 날씨 데이터를 4가지 배경 모드로 매핑하는 함수
@@ -110,7 +111,10 @@ const Home: React.FC = () => {
         {isSiteLoading && (
           <LoadingScreen
             key="loader"
-            onLoadingComplete={() => setIsSiteLoading(false)}
+            onLoadingComplete={() => {
+              setIsSiteLoading(false)
+              setEntranceTrigger(prev => prev + 1)
+            }}
             minDuration={6000} // 최소 로딩 시간
           />
         )}
@@ -130,7 +134,7 @@ const Home: React.FC = () => {
               >
                 <ScrambleText
                   text={weather.data.weather[0].main}
-                  trigger={scrambleTrigger}
+                  trigger={entranceTrigger + scrambleTrigger}
                 />
               </span>
             ) : (
@@ -190,22 +194,22 @@ const Home: React.FC = () => {
       <nav className="bottom-info">
         <div className="bottom-info-left-group">
           <div className="bottom-info-left">
-            <ScrambleText text="Korea" />
+            <ScrambleText text="Korea" trigger={entranceTrigger} />
           </div>
           <div className="bottom-info-left">
-            <ScrambleText text="©2026 MARPH Works" />
+            <ScrambleText text="©2026 MARPH Works" trigger={entranceTrigger} />
           </div>
         </div>
         <div className="bottom-info-center">
-          <ScrambleText text="Build Anything. Everything." />
+          <ScrambleText text="Build Anything. Everything." trigger={entranceTrigger} />
         </div>
         <div className="bottom-info-right-group">
           <div className="bottom-info-right">
-            <ScrambleText text="Say Hi" />
+            <ScrambleText text="Say Hi" trigger={entranceTrigger} />
           </div>
           <div className="bottom-info-right-dash"></div>
           <div className="bottom-info-right">
-            <ScrambleText text="Knock on Marph Works" />
+            <ScrambleText text="Knock on Marph Works" trigger={entranceTrigger} />
           </div>
         </div>
       </nav>
