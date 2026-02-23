@@ -1,0 +1,756 @@
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react'
+import { motion, AnimatePresence, usePresence } from 'framer-motion'
+// CSS 경로가 프로젝트 환경과 맞는지 확인하세요.
+import '../pages/Home.css'
+import LogoX from '../assets/logo_x.svg';
+
+// --- ⚙️ 애니메이션 및 스타일 통합 설정 ---
+const TICKER_CONFIG = {
+    scramble: {
+        symbols: "!@#$%^&*()_+-=[]{}|;:,.<>?/~",
+        blocks: "█&*()=[]{}|",
+        speedBase: 70,
+        speedIncrement: 40,
+        steps: 2,
+        stagger: 160,
+    },
+    exitScramble: {
+        speed: 90,
+        duration: 0.4,
+    },
+    glitch: {
+        amplitude: [0, -3, 3, -3, 3, -2, 2, 0],
+        duration: 0.3,
+    },
+    transition: {
+        duration: 0,
+        holdTime: 14000
+    },
+    logoAdjust: {
+        scale: 0.82
+    }
+};
+
+interface TextOption {
+    text: string
+    fontSize: string
+    fontWeight: string
+    letterSpacing: string | string[]; // 공통 혹은 줄별 배열 허용
+    lineHeight?: string;
+    gap?: string;
+    overrides?: Record<number, React.ReactNode>
+}
+
+const texts: TextOption[] = [
+    {
+        text: "MW",
+        fontSize: '110px',
+        fontWeight: '200',
+        letterSpacing: '-1px',
+        overrides: { 1: <span style={{ transform: 'rotate(180deg)', display: 'inline-block' }}>M</span> }
+    },
+    {
+        text: "MXR", fontSize: '86px', fontWeight: '200', letterSpacing: '0px',
+        overrides: {
+            1: <img src={LogoX} alt="X" style={{ width: `${TICKER_CONFIG.logoAdjust.scale}em`, height: 'auto', display: 'block' }} />
+        }
+    },
+    {
+        text: "malcolm\nralph",
+        fontSize: '58px',
+        fontWeight: '300',
+        letterSpacing: ['-1.8px', '-1px'],
+        lineHeight: '1',
+        gap: '-7px',
+    },
+    {
+        text: 'Build Anything\nEverything',
+        fontSize: '42px',
+        fontWeight: '300',
+        letterSpacing: ['-1.4px', '-1.4px'],
+        lineHeight: '1',
+        gap: '4px',
+    },
+    {
+        text: "MARPH\nWORKS",
+        fontSize: '60px',
+        fontWeight: '300',
+        letterSpacing: ['0.76px', '-0.6px'],
+        lineHeight: '1',
+        gap: '-11px',
+        overrides: { 6: <span style={{ transform: 'rotate(180deg)', display: 'inline-block' }}>M</span> }
+    },
+]
+
+interface ScrambleCharProps {
+    char: string
+    index: number
+    totalLength: number
+    customNode?: React.ReactNode
+}
+
+const ScrambleChar: React.FC<ScrambleCharProps> = ({ char, index, totalLength, customNode }) => {
+    const [displayChar, setDisplayChar] = useState<string | React.ReactNode>(char)
+    const [isFinished, setIsFinished] = useState(false)
+    const [isPresent, safeToRemove] = usePresence()
+    const timeoutRef = useRef<number | null>(null)
+    const countRef = useRef(0)
+
+    useEffect(() => {
+        if (!isPresent) return;
+        const { speedBase, speedIncrement, steps, stagger, symbols, blocks } = TICKER_CONFIG.scramble;
+        countRef.current = 0
+        setIsFinished(false)
+
+        if (char === ' ' || char === '\n') {
+            setDisplayChar(char === ' ' ? '\u00A0' : '')
+            setIsFinished(true)
+            return
+        }
+
+        const centerIndex = (totalLength - 1) / 2;
+        const distanceToCenter = Math.abs(index - centerIndex);
+        const startDelay = distanceToCenter * stagger;
+
+        const run = () => {
+            const delay = speedBase + (countRef.current * speedIncrement)
+            timeoutRef.current = window.setTimeout(() => {
+                countRef.current++
+                if (countRef.current > steps) {
+                    setDisplayChar(customNode || char)
+                    setIsFinished(true)
+                } else {
+                    const charSet = countRef.current < steps / 2 ? blocks : symbols;
+                    setDisplayChar(charSet[Math.floor(Math.random() * charSet.length)])
+                    run()
+                }
+            }, delay)
+        }
+        timeoutRef.current = window.setTimeout(run, startDelay)
+        return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current) }
+    }, [char, index, totalLength, customNode, isPresent])
+
+    useEffect(() => {
+        if (!isPresent) {
+            const { symbols, blocks } = TICKER_CONFIG.scramble;
+            const interval = setInterval(() => {
+                const charSet = Math.random() > 0.5 ? blocks : symbols;
+                setDisplayChar(charSet[Math.floor(Math.random() * charSet.length)])
+            }, TICKER_CONFIG.exitScramble.speed);
+            const cleanup = setTimeout(() => {
+                clearInterval(interval);
+                safeToRemove?.();
+            }, TICKER_CONFIG.exitScramble.duration * 1000);
+            return () => { clearInterval(interval); clearTimeout(cleanup); };
+        }
+    }, [isPresent, safeToRemove]);
+
+    const isImage = React.isValidElement(customNode) && (typeof customNode.type === 'string' && customNode.type === 'img');
+
+    return (
+        <motion.span
+            style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                height: '1em',
+                whiteSpace: 'pre',
+                opacity: 1
+            }}
+        >
+            {isFinished && isImage && isPresent ? (
+                <motion.span
+                    animate={{ x: TICKER_CONFIG.glitch.amplitude }}
+                    transition={{ duration: TICKER_CONFIG.glitch.duration }}
+                    style={{ display: 'flex', alignItems: 'center' }}
+                >
+                    {displayChar}
+                </motion.span>
+            ) : (
+                <span style={{ display: 'flex', alignItems: 'center' }}>{displayChar}</span>
+            )}
+        </motion.span>
+    )
+}
+
+const AnimatedSubtext: React.FC<{ text: string; loopKey: number; className?: string }> = ({ text, loopKey, className }) => {
+    return (
+        <motion.div
+            key={loopKey}
+            initial="hidden"
+            animate="visible"
+            variants={{
+                visible: {
+                    transition: {
+                        staggerChildren: 0.05
+                    }
+                }
+            }}
+            className={className}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+            {text.split("").map((char, i) => (
+                <motion.span
+                    key={i}
+                    variants={{
+                        hidden: { opacity: 0, y: 6 },
+                        visible: { opacity: 1, y: 0 }
+                    }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    style={{ display: 'inline-block', whiteSpace: 'pre' }}
+                >
+                    {char}
+                </motion.span>
+            ))}
+        </motion.div>
+    );
+};
+
+interface TextTickerProps {
+    subText: string;
+    setSubText: React.Dispatch<React.SetStateAction<string>>;
+}
+
+const TextTicker: React.FC<TextTickerProps> = ({ subText, setSubText }) => {
+    const [index, setIndex] = useState(0)
+    const [isEditing, setIsEditing] = useState(false)
+    const [subtextKey, setSubtextKey] = useState(0)
+    const [inputWidth, setInputWidth] = useState(120)
+    const inputRef = useRef<HTMLInputElement>(null)
+    const spanRef = useRef<HTMLSpanElement>(null)
+
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            if (!isEditing) {
+                setIndex((prevIndex) => (prevIndex + 1) % texts.length)
+            }
+        }, TICKER_CONFIG.transition.holdTime)
+        return () => clearInterval(timer)
+    }, [isEditing])
+
+    useEffect(() => {
+        if (!isEditing && subText === "How's where you are?") {
+            const interval = setInterval(() => {
+                setSubtextKey(prev => prev + 1);
+            }, 7500); // 4초 텀 + 애니메이션 시간 고려
+            return () => clearInterval(interval);
+        }
+    }, [isEditing, subText])
+
+    useLayoutEffect(() => {
+        if (spanRef.current) {
+            // CSS 패딩이 포함된 offsetWidth를 그대로 사용하여 인풋 너비를 설정합니다.
+            const measuredWidth = spanRef.current.offsetWidth
+            setInputWidth(Math.max(measuredWidth, 100))
+        }
+    }, [subText, isEditing])
+
+    useEffect(() => {
+        if (isEditing && inputRef.current) {
+            inputRef.current.focus()
+            inputRef.current.select()
+        }
+    }, [isEditing])
+
+    const currentTextObj = texts[index]
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            setIsEditing(false)
+        }
+    }
+
+    return (
+        <div className="malph-works" style={{ position: 'fixed', inset: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', pointerEvents: 'none', zIndex: 999 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '120px' }}>
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={index}
+                            initial={{ opacity: 1 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 1 }}
+                            transition={{ duration: 0 }}
+                            style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                textAlign: 'center',
+                                fontSize: currentTextObj.fontSize,
+                                fontWeight: currentTextObj.fontWeight,
+                                lineHeight: currentTextObj.lineHeight || '1',
+                            }}
+                        >
+                            {currentTextObj.text.split('\n').map((line, lineIdx) => {
+                                const currentLineSpacing = Array.isArray(currentTextObj.letterSpacing)
+                                    ? currentTextObj.letterSpacing[lineIdx]
+                                    : currentTextObj.letterSpacing;
+
+                                return (
+                                    <div
+                                        key={lineIdx}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            marginTop: lineIdx !== 0 ? (currentTextObj.gap || '0px') : '0px',
+                                            letterSpacing: currentLineSpacing
+                                        }}
+                                    >
+                                        {line.split('').map((char, charIdx) => {
+                                            const fullIndex = currentTextObj.text.split('\n')
+                                                .slice(0, lineIdx)
+                                                .reduce((acc, curr) => acc + curr.length + 1, 0) + charIdx;
+
+                                            return (
+                                                <ScrambleChar
+                                                    key={`${index}-${lineIdx}-${charIdx}`}
+                                                    char={char}
+                                                    index={fullIndex}
+                                                    totalLength={currentTextObj.text.length}
+                                                    customNode={currentTextObj.overrides?.[fullIndex]}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })}
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
+
+                {/* 서브텍스트: [ How's where you are? ] */}
+                <motion.div
+                    className="home-subtext-group"
+                    onClick={() => {
+                        if (subText === "How's where you are?") {
+                            setSubText("")
+                        }
+                        setIsEditing(true)
+                    }}
+                    style={{ pointerEvents: 'auto' }}
+                    layout
+                >
+                    <motion.span className="home-subtext-bracket" layout transition={{ type: "spring", stiffness: 200, damping: 30 }}>[</motion.span>
+
+                    {/* 너비 측정을 위한 숨겨진 요소 */}
+                    <span
+                        ref={spanRef}
+                        className="home-subtext-input"
+                        style={{
+                            position: 'absolute',
+                            visibility: 'hidden',
+                            height: 'auto',
+                            width: 'auto',
+                            whiteSpace: 'pre',
+                            pointerEvents: 'none',
+                            zIndex: -1
+                        }}
+                    >
+                        {subText || ""}
+                    </span>
+
+                    {isEditing ? (
+                        <motion.input
+                            ref={inputRef}
+                            layout
+                            key="subtext-input"
+                            className="home-subtext-input"
+                            value={subText}
+                            placeholder=""
+                            onChange={(e) => setSubText(e.target.value)}
+                            onBlur={() => {
+                                setIsEditing(false)
+                                if (subText.trim() === "") {
+                                    setSubText("How's where you are?")
+                                }
+                            }}
+                            onKeyDown={handleKeyDown}
+                            style={{ width: `${inputWidth}px`, overflow: 'visible' }}
+                            transition={{ type: "spring", stiffness: 200, damping: 30 }}
+                        />
+                    ) : (
+                        subText === "How's where you are?" ? (
+                            <AnimatedSubtext
+                                text={subText}
+                                loopKey={subtextKey}
+                                className="home-subtext-content"
+                            />
+                        ) : (
+                            <motion.span
+                                layout
+                                key="subtext-display"
+                                className={`home-subtext-content ${subText !== "How's where you are?" ? "home-subtext-custom" : ""}`}
+                                transition={{ type: "spring", stiffness: 200, damping: 30 }}
+                            >
+                                {subText}
+                            </motion.span>
+                        )
+                    )}
+                    <motion.span className="home-subtext-bracket" layout transition={{ type: "spring", stiffness: 200, damping: 30 }}>]</motion.span>
+                </motion.div>
+            </div>
+        </div>
+    )
+}
+// <- 이 괄호가 누락되어 에러가 났었습니다.
+
+export default TextTicker;
+
+/*
+===========================================================================
+[보관용 코드] 무중력 일렁임 (Floating Skew) - Windy 날씨용
+// WindyChar: 바람에 날리는 듯한 사인파 부유 효과 + 마우스 인터랙션
+const WindyChar: React.FC<{
+    char: string;
+    sentenceIndex: number;
+    mouseX: any;
+    mouseY: any;
+}> = ({ char, sentenceIndex, mouseX, mouseY }) => {
+    const charRef = useRef<HTMLSpanElement>(null)
+
+    // [마우스 반응] 실제 DOM 위치를 한 번만 저장 (floating 중에도 이 기준 위치 사용)
+    const [basePosition, setBasePosition] = useState({ x: 0, y: 0 })
+
+    useEffect(() => {
+        // visible 애니메이션이 종료된 후 한 번만 위치 저장
+        const timer = setTimeout(() => {
+            if (charRef.current) {
+                const rect = charRef.current.getBoundingClientRect()
+                setBasePosition({
+                    x: rect.left + rect.width / 2,
+                    y: rect.top + rect.height / 2
+                })
+            }
+        }, 1200) // visible 애니메이션 1초 + 여유 0.2초
+
+        return () => clearTimeout(timer)
+    }, [sentenceIndex]) // sentenceIndex가 바꽈 때마다 새로 계산
+
+    // [Push Away 효과] 마우스 반대 방향으로 밀림
+    const pushX = useTransform([mouseX], ([mx]) => {
+        if (basePosition.x === 0) return 0
+        const dx = basePosition.x - (mx as number)
+        const dist = Math.sqrt(dx * dx)
+        if (dist > 40 || dist === 0 || !isFinite(dist)) return 0
+        return (dx / dist) * 100 * (1 - dist / 200)
+    })
+
+    const pushY = useTransform([mouseY], ([my]) => {
+        if (basePosition.y === 0) return 0
+        const dy = basePosition.y - (my as number)
+        const dist = Math.sqrt(dy * dy)
+        if (dist > 40 || dist === 0 || !isFinite(dist)) return 0
+        return (dy / dist) * 0 * (1 - dist / 200)
+    })
+
+    // [회전 효과] Y축 회전
+    const rotateY = useTransform([mouseX], ([mx]) => {
+        if (basePosition.x === 0) return 0
+        const dx = (mx as number) - basePosition.x
+        if (Math.abs(dx) > 100 || !isFinite(dx)) return 0
+        return dx * 0.1
+    })
+
+    // [스프링으로 부드럽게]
+    const smoothPushX = useSpring(pushX, { stiffness: 200, damping: 50 })
+    const smoothPushY = useSpring(pushY, { stiffness: 200, damping: 50 })
+    const smoothRotateY = useSpring(rotateY, { stiffness: 100, damping: 80 })
+
+    // [바람 강도] 랜덤으로 바람의 세기 결정 (0.7~1.3)
+    const windStrength = 1 + Math.random() * 3
+
+    // [랜덤 딜레이] 순차가 아닌 완전 랜덤으로 (무중력 느낌)
+    const randomDelay = Math.random() * 0.8
+
+    // [랜덤 Skew 범위] -5deg ~ 10deg
+    const randomSkew = -5 + Math.random() * 15
+
+    // [랜덤 시작 위치] 화면 여러 곳에서 떠오르는 느낌
+    const randomStartY = -30 + Math.random() * 60 // -30 ~ 30
+    const randomStartX = -40 + Math.random() * 80 // -40 ~ 40
+    const randomStartSkew = -15 + Math.random() * 30 // -15 ~ 15
+
+    const windyVariants: Variants = {
+        // [랜덤 시작] 화면 곳곳에서 페이드인
+        hidden: {
+            opacity: 0,
+            y: randomStartY,
+            x: randomStartX,
+            skewX: randomStartSkew,
+        },
+        // [자연스러운 등장] 랜덤 딜레이로 제멋대로 나타남
+        visible: {
+            opacity: 1,
+            y: 0,
+            x: 0,
+            skewX: 0,
+            transition: {
+                delay: randomDelay,
+                duration: 1,
+                ease: "easeOut"
+            }
+        },
+        // [사인파 부유] 무한 반복되는 위아래 + 좌우 일렁임
+        floating: {
+            y: [0, -2 * windStrength, 0, 2 * windStrength, 0],
+            x: [0, 7 * windStrength, 0, -1 * windStrength, 0],
+            skewX: [0, randomSkew * 0.3, 0, -randomSkew * 0.2, 0],
+            transition: {
+                delay: randomDelay,
+                duration: 3 + Math.random() * 2,
+                repeat: Infinity,
+                repeatType: "loop",
+                ease: "linear",
+            }
+        },
+        // [Exit: 지속적인 움직임 + 페이드아웃] 투명해진 후에도 계속 움직임
+        exit: {
+            opacity: [null, null, 0.7, 0.4, 0.2, 0, 0, 0],
+            y: [
+                null,
+                null,
+                -1 * windStrength,
+                0.5 * windStrength,
+                -0.3 * windStrength,
+                0.8 * windStrength,
+                -1.2 * windStrength,
+                2 * windStrength
+            ],
+            x: [
+                null,
+                null,
+                0.5 * windStrength,
+                -0.3 * windStrength,
+                0.5 * windStrength,
+                -0.8 * windStrength,
+                1 * windStrength,
+                -1.5 * windStrength
+            ],
+            skewX: [
+                null,
+                null,
+                randomSkew * 0.05,
+                -randomSkew * 0.03,
+                randomSkew * 0.04,
+                -randomSkew * 0.06,
+                randomSkew * 0.08,
+                0
+            ],
+            transition: {
+                delay: 0,
+                duration: 4.0,
+                ease: "linear",
+                times: [0, 0.1, 0.25, 0.4, 0.5, 0.6, 0.8, 1.0]
+            }
+        }
+    }
+
+    return (
+        <span
+            ref={charRef}
+            style={{
+                display: 'inline-block',
+                minWidth: char === ' ' ? '0.3em' : 'auto',
+                whiteSpace: 'pre',
+                verticalAlign: 'bottom',
+            }}
+        >
+            <motion.span
+                key={`${char}-${sentenceIndex}`}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                variants={windyVariants}
+                style={{
+                    display: 'inline-block',
+                    willChange: 'transform',
+                }}
+            >
+                <motion.span
+                    animate="floating"
+                    variants={windyVariants}
+                    style={{
+                        display: 'inline-block',
+                        x: smoothPushX,
+                        y: smoothPushY,
+                        rotateY: smoothRotateY,
+                    }}
+                >
+                    {char}
+                </motion.span>
+            </motion.span>
+        </span>
+    )
+}
+===========================================================================
+*/
+
+// [현재 적용된 효과] 글리치 (Glitch) 효과
+// const GlitchChar: React.FC<{ char: string; index: number; sentenceIndex: number }> = ({ char, index, sentenceIndex }) => {
+//     // [랜덤 딜레이] 0~0.5초 사이 랜덤 (더 긴 범위로 불규칙성 증가)
+//     const randomDelay = Math.random() * 0.5
+
+//     // [Clip-path 슬라이싱] 5개 조각으로 나누기 (0%, 20%, 40%, 60%, 80%, 100%)
+//     const slices = [
+//         'inset(0% 0% 80% 0%)',    // 상단 20%
+//         'inset(20% 0% 60% 0%)',   // 두번째 조각
+//         'inset(40% 0% 40% 0%)',   // 중간 조각
+//         'inset(60% 0% 20% 0%)',   // 네번째 조각
+//         'inset(80% 0% 0% 0%)',    // 하단 20%
+//     ]
+
+//     // 글리치 효과 정의
+//     const glitchVariants: Variants = {
+//         hidden: { opacity: 0, y: 0, skewX: 0, x: 0 },
+//         visible: () => ({
+//             opacity: 1,
+//             y: 0,
+//             skewX: 0,
+//             x: 0,
+//             textShadow: "0px 0px 0px rgba(0,0,0,0)",
+//             transition: {
+//                 delay: randomDelay,
+//                 duration: 0.001
+//             }
+//         }),
+//         glitch: () => ({
+//             // [깜빡임 강도] 더욱 극단적으로 (0.2까지 떨어짐)
+//             opacity: [1, 0.4, 1, 0.6, 0.2, 1, 0.8, 1],
+
+//             // [비틀림 강도] 극대화 (-35 ~ +35도)
+//             skewX: [0, 35, -30, 20, -35, 15, -10, 0],
+
+//             // [위아래 떨림] 강화 (-10 ~ +10px)
+//             y: [0, -8, 10, -5, 8, -3, 2, 0],
+
+//             // [좌우 떨림] 강화 (-12 ~ +12px)
+//             x: [0, 10, -12, 8, -6, 10, -4, 0],
+
+//             // [RGB Split 극대화] 5~10px 분리, 더 강한 색상
+//             textShadow: [
+//                 "0px 0px 0px rgba(0,0,0,0)",
+//                 "-8px 0px 0px rgba(255,0,0,0.9), 8px 0px 0px rgba(0,255,255,0.9)", // 극강 RGB Split
+//                 "10px 3px 0px rgba(255,0,0,0.95), -7px -3px 0px rgba(0,255,255,0.95)",
+//                 "-6px 2px 0px rgba(255,0,0,0.85), 9px -2px 0px rgba(0,255,255,0.85)",
+//                 "7px -1px 0px rgba(255,0,0,0.8), -8px 1px 0px rgba(0,255,255,0.8)",
+//                 "-5px 0px 0px rgba(255,0,0,0.7), 6px 0px 0px rgba(0,255,255,0.7)",
+//                 "3px 1px 0px rgba(255,0,0,0.6), -4px -1px 0px rgba(0,255,255,0.6)",
+//                 "0px 0px 0px rgba(0,0,0,0)"
+//             ],
+
+//             // [Clip-path Slicing] 조각들이 제각각 움직이는 효과
+//             clipPath: [
+//                 'inset(0% 0% 0% 0%)',
+//                 slices[Math.floor(Math.random() * 5)],
+//                 slices[Math.floor(Math.random() * 5)],
+//                 slices[Math.floor(Math.random() * 5)],
+//                 'inset(0% 0% 0% 0%)',
+//                 slices[Math.floor(Math.random() * 5)],
+//                 'inset(0% 0% 0% 0%)',
+//             ],
+
+//             transition: {
+//                 delay: randomDelay,
+//                 // [단발적 글리치] 짧고 강렬하게 한 번만 실행
+//                 duration: 0.15, // 0.3초로 짧게
+//                 times: [0, 0.1, 0.2, 0.35, 0.5, 0.65, 0.8, 1.0], // 더 빠른 리듬
+//                 ease: "linear",
+//             }
+//         })
+//     }
+
+//     return (
+//         <span style={{
+//             display: 'inline-block',
+//             minWidth: char === ' ' ? '0.3em' : 'auto',
+//             whiteSpace: 'pre',
+//             verticalAlign: 'bottom',
+//             position: 'relative',
+//         }}>
+//             <motion.span
+//                 key={`${char}-${sentenceIndex}`}
+//                 custom={index}
+//                 initial="hidden"
+//                 animate={["visible", "glitch"]}
+//                 variants={glitchVariants}
+//                 onAnimationComplete={() => {
+//                     // 글리치 애니메이션 완료 후 클래스 제거하여 잔상 효과 종료
+//                 }}
+//                 style={{ 
+//                     display: 'inline-block',
+//                     position: 'relative',
+//                 }}
+//                 className={`glitch-char glitch-active-${sentenceIndex}`}
+//                 data-text={char}
+//             >
+//                 {char}
+//             </motion.span>
+//         </span>
+//     )
+// }
+
+// const TextTicker: React.FC = () => {
+//     const [index, setIndex] = useState(0)
+
+//     useEffect(() => {
+//         const timer = setInterval(() => {
+//             setIndex((prevIndex) => (prevIndex + 1) % texts.length)
+//         }, 8000) // [변환 주기] 5초마다 변경
+
+//         return () => clearInterval(timer)
+//     }, [])
+
+//     const currentChars = texts[index].split('')
+
+//     return (
+//         <div 
+//             className="malph-works" 
+//             style={{
+//                 overflow: 'visible',
+//                 height: '1.2em',
+//                 display: 'flex',
+//                 alignItems: 'flex-end',
+//                 position: 'fixed',
+//                 bottom: '30px',
+//                 left: '30px',
+//                 width: 'calc(100% - 60px)',
+//                 pointerEvents: 'none',
+//                 zIndex: 999
+//             }}
+//         >
+//             <AnimatePresence mode="sync">
+//                 <div
+//                     key={index}
+//                     style={{
+//                         position: 'absolute',
+//                         left: 0,
+//                         bottom: 0,
+//                         display: 'flex',
+//                         alignItems: 'flex-end'
+//                     }}
+//                     aria-label={texts[index]}
+//                 >
+//                     {currentChars.map((char, i) => (
+//                         <GlitchChar 
+//                             key={`${char}-${i}-${index}`} 
+//                             char={char}
+//                             index={i}
+//                             sentenceIndex={index}
+//                         />
+//                     ))}
+//                 </div>
+//             </AnimatePresence>
+//         </div>
+//     )
+// }
+
+// export default TextTicker
+
+
+// ===========================================================================
+// [보관용 코드] 스크램블 (Scramble) 효과
+// - 왼쪽부터 오른쪽으로 순차적으로 문자가 랜덤하게 바뀌는 효과
+// - 날씨나 상황에 따라 효과를 교체하고 싶을 때 사용하세요.
+// ===========================================================================

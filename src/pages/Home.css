@@ -1,494 +1,425 @@
+@import url('https://fonts.googleapis.com/css2?family=MuseoModerno:wght@100..900&family=Reenie+Beanie&display=swap');
+
+
 .home {
-  min-height: 100vh;
-}
-
-.hero {
-  background: linear-gradient(135deg, #ededed 0%, #bdbdbd 100%);
-  color: #222;
-  padding: 80px 0;
-  min-height: 60vh;
-  display: flex;
-  align-items: center;
-}
-
-.hero-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 60px;
-  align-items: center;
-  padding: 0 20px;
-}
-
-.main-title {
-  font-size: 3rem;
-  font-weight: 700;
-  line-height: 1.2;
-  margin-bottom: 1.5rem;
-}
-
-.highlight {
-  background: linear-gradient(45deg, #888, #222);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 800;
-}
-
-.subtitle {
-  font-size: 1.2rem;
-  line-height: 1.6;
-  margin-bottom: 2rem;
-  opacity: 0.9;
-}
-
-.cta-buttons {
-  display: flex;
-  gap: 1rem;
-}
-
-.cta-primary, .cta-secondary {
-  padding: 15px 30px;
-  border: none;
-  border-radius: 50px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-
-.cta-primary {
-  background: linear-gradient(45deg, #ff6b6b, #ffa726);
-  color: white;
-}
-
-.cta-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(255, 107, 107, 0.3);
-}
-
-.cta-secondary {
-  background: transparent;
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-}
-
-.cta-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.6);
-}
-
-.hero-illustration {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 0 20px;
-}
-
-.illustration-placeholder {
-  font-size: 8rem;
   position: relative;
-  animation: float 6s ease-in-out infinite;
+  width: 100%;
+  min-height: 100vh;
+  background-color: #f7f7f7;
+  overflow: hidden;
 }
 
-.floating-icons {
+.home-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  z-index: 10;
+}
+
+.bottom-info {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  z-index: 10;
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+}
+
+.bottom-info-right-group {
+  display: flex;
+  /* 요소들을 가로(기본값)로 나열 */
+  align-items: center;
+  /* 세로 정렬이 필요할 경우 추가 */
+  gap: 18px;
+}
+
+.bottom-info-right-dash {
+  width: 20px;
+  height: 1px;
+  background-color: #222222;
+  display: inline-block;
+  /* 다른 요소와 나란히 배치 */
+  vertical-align: middle;
+  /* 주변 텍스트와 높이 맞춤 */
+}
+
+.bottom-info-left-group {
+  display: flex;
+  /* 요소들을 가로(기본값)로 나열 */
+  align-items: center;
+  /* 세로 정렬이 필요할 경우 추가 */
+  gap: 50px;
+}
+
+.nav-left {
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 24px;
+  color: #222222;
+}
+
+.weather-status,
+.bottom-info-link,
+.bottom-info-link-regular {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.weather-status::after,
+.bottom-info-link::after,
+.bottom-info-link-regular::after {
+  content: '';
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  bottom: 0px;
+  left: 0;
+  width: 0;
+  height: 1.5px;
+  background-color: #222222;
+  transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-.floating-icons .icon {
+.weather-status:hover::after,
+.bottom-info-link:hover::after,
+.bottom-info-link-regular:hover::after {
+  width: 100%;
+}
+
+.weather-selector-modal {
   position: absolute;
-  font-size: 2rem;
-  animation: orbit 8s linear infinite;
-}
-
-.floating-icons .icon:nth-child(1) {
-  animation-delay: 0s;
-  transform: rotate(0deg) translateX(120px) rotate(0deg);
-}
-
-.floating-icons .icon:nth-child(2) {
-  animation-delay: -2s;
-  transform: rotate(90deg) translateX(120px) rotate(-90deg);
-}
-
-.floating-icons .icon:nth-child(3) {
-  animation-delay: -4s;
-  transform: rotate(180deg) translateX(120px) rotate(-180deg);
-}
-
-.floating-icons .icon:nth-child(4) {
-  animation-delay: -6s;
-  transform: rotate(270deg) translateX(120px) rotate(-270deg);
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
-}
-
-@keyframes orbit {
-  from { transform: rotate(0deg) translateX(120px) rotate(0deg); }
-  to { transform: rotate(360deg) translateX(120px) rotate(-360deg); }
-}
-
-.about, .projects, .contact {
-  padding: 80px 20px;
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.about {
-  background: #f8fafc;
-}
-
-.about h2, .projects h2, .contact h2 {
-  text-align: center;
-  font-size: 2.5rem;
-  margin-bottom: 3rem;
-  color: #2d3748;
-}
-
-.about-content {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 60px;
-  align-items: start;
-}
-
-.about-text h3 {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-  color: #4a5568;
-}
-
-.about-text p {
-  font-size: 1.1rem;
-  line-height: 1.7;
-  color: #718096;
-  margin-bottom: 2rem;
-}
-
-.about-stats {
+  top: calc(100% + 15px);
+  left: 0;
+  background-color: #222222;
+  padding: 14px 16px;
+  border-radius: 0px;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 12px;
+  z-index: 100;
+  min-width: 90px;
+  /* box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); */
+  /* backdrop-filter: blur(10px); */
 }
 
-.stat {
-  text-align: center;
-  padding: 2rem;
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease;
+.weather-option {
+  color: #ffffff;
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  text-align: left;
+  letter-spacing: 0.2px;
 }
 
-.stat:hover {
-  transform: translateY(-5px);
+.weather-option:hover {
+  opacity: 0.6;
 }
 
-.stat-number {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #667eea;
-  margin-bottom: 0.5rem;
+.weather-status-container {
+  font-size: 20px;
 }
 
-.stat-label {
-  font-size: 1rem;
-  color: #718096;
-  font-weight: 500;
+.nav-left-sub {
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-weight: 300;
+  font-size: 13px;
+  color: #222222;
+  display: flex;
+  gap: 24px;
+  letter-spacing: 0.4px;
+  line-height: 2;
 }
 
-.projects {
-  background: white;
+.nav-right {
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 24px;
+  color: #222222;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
 }
 
-.project-intro {
-  text-align: center;
-  margin-bottom: 3rem;
-}
-
-.project-intro p {
-  font-size: 1.1rem;
-  color: #718096;
-  line-height: 1.7;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.project-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.project-card-link {
-  text-decoration: none;
+.bottom-info a {
   color: inherit;
-  display: block;
-}
-
-.project-card-link:hover {
   text-decoration: none;
-  color: inherit;
+  font-weight: 400;
 }
 
-.project-card {
-  background: white;
-  border-radius: 20px;
-  padding: 2rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  border: 1px solid #e2e8f0;
-  position: relative;
+
+
+.malph-works {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  /* 화면 전체 너비 */
+  height: 100vh;
+  /* 화면 전체 높이 */
+
+  display: flex;
+  justify-content: center;
+  /* 가로 중앙 */
+  align-items: center;
+  /* 세로 중앙 */
+
+  /* 기존 스타일 유지 */
+  font-family: 'MuseoModerno', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  /* 개별 스타일은 TextTicker.tsx에서 주입됨 */
+  color: #222222;
+  line-height: 0.8;
+  z-index: 2;
+  pointer-events: none;
+  user-select: none;
+
+  /* GPU 가속 */
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* ::before - 빨간 잔상 (기본 상태: 투명)
+.glitch-char::before {
+  content: attr(data-text);
+  position: absolute;
+  left: -2px;
+  top: 0;
+  color: #ff0000;
+  opacity: 0;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  transition: opacity 0.1s;
+}
+
+/* ::after - 청록 잔상 (기본 상태: 투명)
+.glitch-char::after {
+  content: attr(data-text);
+  position: absolute;
+  right: -2px;
+  top: 0;
+  color: #00ffff;
+  opacity: 0;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  transition: opacity 0.1s;
+}
+
+/* [변화 시에만] 글리치 활성화 - 단발적 노이즈 효과
+[class*="glitch-active-"]::before {
+  animation: glitch-before 0.3s ease-out 1;
+}
+
+[class*="glitch-active-"]::after {
+  animation: glitch-after 0.3s ease-out 1;
+}
+
+/* [변화 시에만] 글리치 활성화 - 단발적 노이즈 효과 */
+[class*="glitch-active-"]::before {
+  animation: glitch-before 0.3s ease-out 1;
+  /* 1회만 실행 */
+}
+
+[class*="glitch-active-"]::after {
+  animation: glitch-after 0.3s ease-out 1;
+  /* 1회만 실행 */
+}
+
+/* [애니메이션] 단발적 노이즈 효과
+@keyframes glitch-before {
+  0% { transform: translate(0, 0); opacity: 0; }
+  15% { transform: translate(-4px, 2px); opacity: 0.8; }
+  30% { transform: translate(3px, -1px); opacity: 0.6; }
+  50% { transform: translate(-2px, 3px); opacity: 0.7; }
+  70% { transform: translate(2px, -2px); opacity: 0.4; }
+  100% { transform: translate(0, 0); opacity: 0; }
+}
+
+@keyframes glitch-after {
+  0% { transform: translate(0, 0); opacity: 0; }
+  20% { transform: translate(4px, -2px); opacity: 0.7; }
+  40% { transform: translate(-3px, 2px); opacity: 0.8; }
+  60% { transform: translate(3px, -3px); opacity: 0.5; }
+  80% { transform: translate(-2px, 1px); opacity: 0.6; }
+  100% { transform: translate(0, 0); opacity: 0; }
+}
+===========================================================================
+*/
+
+/* Main Subtext Styling */
+.home-subtext-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 215px;
+  margin-top: 0px;
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  color: #222222;
   cursor: pointer;
 }
 
-.project-card.featured {
-  border: 2px solid #667eea;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+.home-subtext-bracket {
+  font-size: 30px;
+  font-weight: 100;
+  line-height: 1;
 }
 
-.project-card.coming-soon {
-  border: 2px dashed #cbd5e0;
-  background: #f7fafc;
+.home-subtext-content {
+  font-size: 15px;
+  font-weight: 400;
+  padding: 0 30px;
+  white-space: nowrap;
+  line-height: 2.3;
+  margin-top: 4px;
 }
 
-.project-card:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-}
-
-.project-card.featured:hover {
-  box-shadow: 0 20px 40px rgba(102, 126, 234, 0.2);
-}
-
-.project-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
-
-.project-card h3 {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-  color: #2d3748;
-}
-
-.project-card p {
-  color: #718096;
-  line-height: 1.6;
-  margin-bottom: 1.5rem;
-}
-
-.project-status {
-  margin-bottom: 1rem;
-}
-
-.status-badge {
-  background: #667eea;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 600;
+.home-subtext-custom,
+.home-subtext-input {
+  font-family: 'Reenie Beanie', cursive;
+  font-size: 30px;
+  font-weight: 400;
+  color: #222222;
+  padding: 8px 30px 0 30px;
+  /* 패딩 통일: 20px */
+  margin: 0;
   display: inline-block;
+  box-sizing: border-box;
+  line-height: 1;
 }
 
-.status-badge.thinking {
-  background: #ed8936;
+.home-subtext-custom {
+  font-family: 'Reenie Beanie', cursive;
+  /* font-size: 30px; */
+  /* margin-top: 0; */
+  /* padding: 0 15px; */
+  /* padding-top: 10px; */
+  /* min-width: 50px; */
 }
 
-.project-tags {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.tag {
-  background: #edf2f7;
-  color: #4a5568;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.contact {
-  background: linear-gradient(135deg, #ededed 0%, #bdbdbd 100%);
-  color: #222;
+.home-subtext-input {
+  background: transparent;
+  border: none;
+  /* font-family: 'Reenie Beanie', cursive;
+  font-size: 30px;
+  font-weight: 400; */
+  color: #222222;
   text-align: center;
+  /* padding: 0 15px; */
+  margin: 0;
+  outline: none;
+  line-height: 1;
+  /* width: auto; */
+  /* min-width: 250px; */
+  /* padding-top: 10px; */
 }
 
-.contact h2 {
-  color: #222;
+/* Responsive adjustments */
+/* @media (max-width: 1400px) {
+  .malph-works {
+    font-size: 160px;
+  }
 }
 
-.contact p {
-  font-size: 1.2rem;
-  line-height: 1.6;
-  margin-bottom: 2rem;
-  opacity: 0.9;
-}
-
-.contact-methods {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.contact-btn {
-  background: #bdbdbd;
-  color: #222;
-  padding: 15px 30px;
-  border-radius: 50px;
-  text-decoration: none;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  border: 2px solid #888;
-}
-
-.contact-btn:hover {
-  background: #888;
-  border-color: #444;
-  color: #ededed;
-  transform: translateY(-2px);
-}
-
-/* Responsive Design */
-/* Medium screens (tablets) */
 @media (max-width: 1024px) {
-  .hero {
-    padding: 60px 0;
-    min-height: 50vh;
+  .malph-works {
+    font-size: 120px;
   }
-  
-  .hero-content {
-    max-width: 900px;
-    gap: 40px;
-    padding: 0 40px;
-  }
-  
-  .hero-illustration {
-    padding: 0 10px;
-  }
-  
-  .main-title {
-    font-size: 2.5rem;
-  }
-  
-  .subtitle {
-    font-size: 1.1rem;
-  }
-  
-  .illustration-placeholder {
-    font-size: 7rem;
-  }
-  
-  .floating-icons .icon {
-    font-size: 2rem;
-  }
-  
-  .floating-icons .icon:nth-child(1),
-  .floating-icons .icon:nth-child(2),
-  .floating-icons .icon:nth-child(3),
-  .floating-icons .icon:nth-child(4) {
-    transform: rotate(0deg) translateX(110px) rotate(0deg);
-  }
-}
+} */
 
-/* Small screens (mobile) */
 @media (max-width: 768px) {
-  .hero {
-    padding: 40px 0;
-    min-height: auto;
+
+  .home-nav {
+    padding: 20px 20px;
   }
-  
-  .hero-content {
-    grid-template-columns: 1fr;
-    text-align: center;
-    gap: 40px;
-    padding: 0 20px;
+
+  .weather-status-container {
+    font-size: 16px;
+    line-height: 1.2;
   }
-  
-  .hero-illustration {
-    padding: 0;
+
+  .home-subtext-content {
+    font-size: 18px;
   }
-  
-  .main-title {
-    font-size: 2rem;
-  }
-  
-  .about-content {
-    grid-template-columns: 1fr;
-    gap: 40px;
-  }
-  
-  .about-stats {
-    flex-direction: row;
-    justify-content: center;
-  }
-  
-  .contact-methods {
+
+  .bottom-info {
     flex-direction: column;
-    align-items: center;
+    padding: 20px 20px;
+    gap: 4px;
+    /* 3단 스택 사이의 간격 */
+    height: auto;
+    align-items: flex-start;
   }
-  
-  .illustration-placeholder {
-    font-size: 8rem;
+
+  .bottom-info-left-group {
+    gap: 50px;
+    /* PC와 동일한 간격 */
+    justify-content: flex-start;
+    width: 100%;
   }
-  
-  .floating-icons .icon {
-    font-size: 2rem;
+
+  .bottom-info-right-group {
+    gap: 48px;
+    /* PC와 동일한 간격 */
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  /* Korea 및 Say Hi 다시 표시, Dash 숨김 */
+  .bottom-info-left:nth-child(1),
+  .bottom-info-right:nth-child(1) {
+    display: inline-block !important;
+  }
+
+  .bottom-info-right-dash {
+    display: none !important;
+  }
+
+  /* Reset fixed width for ScrambleText on mobile */
+  .bottom-info-link {
+    width: auto !important;
+    text-align: left !important;
+  }
+
+  /* Rearrange Order */
+  .bottom-info-center {
+    order: 1;
+    text-align: left;
+    width: 100%;
+  }
+
+  .bottom-info-right-group {
+    order: 2;
+  }
+
+  .bottom-info-left-group {
+    order: 3;
+  }
+
+  .malph-works {
+    font-size: 80px;
+  }
+
+  .home-subtext-custom,
+  .home-subtext-input {
+    font-size: 30px;
+    padding: 8px 20px 0 20px;
   }
 }
 
-/* Extra small screens */
+
+
+
 @media (max-width: 480px) {
-  .hero {
-    padding: 30px 0;
-  }
-  
-  .hero-content {
-    gap: 30px;
-    padding: 0 15px;
-  }
-  
-  .hero-illustration {
-    padding: 0;
-  }
-  
-  .main-title {
-    font-size: 1.8rem;
-  }
-  
-  .subtitle {
-    font-size: 1rem;
-  }
-  
-  .illustration-placeholder {
-    font-size: 7rem;
-  }
-  
-  .floating-icons .icon {
-    font-size: 1.8rem;
-  }
-  
-  .floating-icons .icon:nth-child(1),
-  .floating-icons .icon:nth-child(2),
-  .floating-icons .icon:nth-child(3),
-  .floating-icons .icon:nth-child(4) {
-    transform: rotate(0deg) translateX(90px) rotate(0deg);
+  .malph-works {
+    font-size: 60px;
   }
 }

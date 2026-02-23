@@ -1,132 +1,271 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React, { useEffect, useState, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { fetchWeather, fetchWeatherByCurrentLocation } from '../services/weatherService'
+import type { WeatherState } from '../types/weather'
+import GridBackground from '../components/GridBackground'
+import type { WeatherMode } from '../components/GridBackground'
+import TextTicker from '../components/TextTicker'
+import ScrambleText from '../components/ScrambleText'
+import LoadingScreen from '../components/LoadingScreen'
 import './Home.css'
+import LogoS from '../assets/logo_mxrw.svg';
+import PlusBtn from '../assets/plus_btn.svg';
 
 const Home: React.FC = () => {
+  const [weather, setWeather] = useState<WeatherState>({
+    data: null,
+    loading: false,
+    error: null,
+  })
+  const [isWeatherModalOpen, setIsWeatherModalOpen] = useState(false)
+  const [selectedWeatherMode, setSelectedWeatherMode] = useState<WeatherMode | 'Live'>('Live')
+  const [scrambleTrigger, setScrambleTrigger] = useState(0)
+  const [isSiteLoading, setIsSiteLoading] = useState(true)
+  const [entranceTrigger, setEntranceTrigger] = useState(0)
+  const [knockTrigger, setKnockTrigger] = useState(0)
+  const [subtextWeatherMode, setSubtextWeatherMode] = useState<WeatherMode | null>(null)
+  const [subText, setSubText] = useState("How's where you are?")
+  const weatherStatusRef = useRef<HTMLDivElement>(null)
+
+  // 서브텍스트 키워드 매핑 테이블
+  const weatherKeywords: Record<string, string[]> = {
+    Sunny: [
+      'sun', 'sunny', 'happy', 'bright', 'hot', 'warm', 'light', 'clear', 'smile', 'joy', 'summer', 'day', 'gold',
+      'sunshine', 'radiant', 'gleam', 'heat', 'sweat', 'shining', 'outdoor', 'picnic', 'dazzling', 'azure',
+      '태양', '밝은', '행복', '더운', '덥다', '맑은', '맑아', '햇빛', '화창', '햇살', '쨍쨍', '무더위', '눈부신', '따뜻',
+      '따사로운', '파란하늘', '나들이', '덥네', '건조', '빛나는', '덥'
+    ],
+    Rainy: [
+      'rain', 'rainy', 'sad', 'blue', 'wet', 'storm', 'thunderstorm', 'cry', 'umbrella', 'dripping', 'tears', 'shower',
+      'water', 'drizzle', 'downpour', 'puddle', 'lightning', 'humidity', 'melancholy', 'soaked', 'damp', 'gloomy',
+      '비', '슬픈', '우울', '폭풍', '소나기', '장마', '빗소리', '주룩주룩', '번개', '우천', '눅눅', '축축', '젖음', '습해',
+      '보슬비', '천둥', '강우', '눈물', '꾸물꾸물'
+    ],
+    Snow: [
+      'snow', 'snowy', 'cold', 'ice', 'winter', 'frozen', 'chill', 'white', 'flake', 'freeze', 'frost', 'mountain',
+      'ski', 'blizzard', 'shiver', 'polar', 'chilly', 'flurry', 'icicle', 'sled', 'christmas', 'festive',
+      '눈', '추운', '겨울', '얼음', '함박눈', '꽁꽁', '한파', '진눈깨비', '고드름', '썰매', '추워', '춥다', '쌀쌀', '첫눈',
+      '만년설', '빙판', '추위', '화이트', '춥'
+    ],
+    Fog: [
+      'fog', 'foggy', 'mist', 'cloud', 'cloudy', 'gray', 'dark', 'mysterious', 'lonely', 'quiet', 'dream', 'haze',
+      'smoke', 'ghost', 'dust', 'blur', 'overcast', 'vague', 'dim', 'shadowy', 'smog', 'pollution', 'obscure',
+      '안개', '흐린', '구름', '몽환', '흐려', '안보여', '자욱', '미세먼지', '뿌연', '캄캄', '스산', '어둑', '먼지', '찌뿌둥',
+      '희미', '황사', '매연', '답답'
+    ]
+  }
+
+  const handleSubtextChange = (text: string) => {
+    const lowerText = text.toLowerCase()
+
+    if (text === "How's where you are?") {
+      setSubtextWeatherMode(null)
+      return
+    }
+
+    // 키워드 매칭 확인
+    for (const [mode, keywords] of Object.entries(weatherKeywords)) {
+      if (keywords.some(keyword => lowerText.includes(keyword))) {
+        setSubtextWeatherMode(mode as WeatherMode)
+        return
+      }
+    }
+
+    setSubtextWeatherMode(null)
+  }
+
+  // subText 변화에 따른 배경 모드 업데이트
+  useEffect(() => {
+    handleSubtextChange(subText)
+  }, [subText])
+
+  // 실제 날씨 데이터를 4가지 배경 모드로 매핑하는 함수
+  const getWeatherModeFromData = (weatherData: any): WeatherMode => {
+    if (!weatherData) return 'Snow'
+    const main = weatherData.weather[0].main
+
+    switch (main) {
+      case 'Clear': return 'Sunny'
+      case 'Rain':
+      case 'Drizzle':
+      case 'Thunderstorm': return 'Rainy'
+      case 'Snow': return 'Snow'
+      default: return 'Fog'
+    }
+  }
+
+  // 최종적으로 배경에 전달할 모드 결정 (서브텍스트 모드 우선)
+  const displayWeatherMode = subtextWeatherMode || (selectedWeatherMode === 'Live'
+    ? getWeatherModeFromData(weather.data)
+    : selectedWeatherMode as WeatherMode)
+
+  useEffect(() => {
+    // Fetch weather data on component mount
+    const loadWeather = async () => {
+      setWeather({ data: null, loading: true, error: null })
+
+      try {
+        try {
+          const data = await fetchWeatherByCurrentLocation()
+          setWeather({ data, loading: false, error: null })
+        } catch {
+          const data = await fetchWeather({ city: 'Seoul' })
+          setWeather({ data, loading: false, error: null })
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to load weather'
+        setWeather({ data: null, loading: false, error: errorMessage })
+      }
+    }
+
+    loadWeather()
+  }, [])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        weatherStatusRef.current &&
+        !weatherStatusRef.current.contains(event.target as Node)
+      ) {
+        setIsWeatherModalOpen(false)
+      }
+    }
+
+    if (isWeatherModalOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isWeatherModalOpen])
+
   return (
     <div className="home">
-      <section className="hero">
-        <div className="hero-content">
-          <div className="hero-text">
-            <h1 className="main-title">
-              일상에서 영감을 받아,
-              <br />
-              <span className="highlight">둘이서</span> 앱을 만듭니다! ✨
-            </h1>
-            <p className="subtitle">
-              <b>malph</b>는 디자인과 기획을 맡은 <b>malcolm</b>, 개발을 맡은 <b>ralph</b>가
-              <br />
-              일상에서 도움이 될만한 아이디어를 찾아 직접 앱으로 만들어가는 작은 회사입니다.
-            </p>
-            <div className="cta-buttons">
-              <button className="cta-primary" onClick={() => document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' })}>프로젝트 보기</button>
-            </div>
-          </div>
-        </div>
-      </section>
+      <AnimatePresence mode="wait">
+        {isSiteLoading && (
+          <LoadingScreen
+            key="loader"
+            onLoadingComplete={() => {
+              setIsSiteLoading(false)
+              setEntranceTrigger(prev => prev + 1)
+            }}
+            minDuration={6000} // 최소 로딩 시간
+          />
+        )}
+      </AnimatePresence>
 
-      <section className="about">
-        <div className="container">
-          <h2>About malph</h2>
-          <div className="about-content">
-            <div className="about-text">
-                <h3>🧑‍🤝‍🧑 둘이서 만드는 앱</h3>
-              <p>
-                디자인과 기획은 malcolm, 개발은 ralph가 맡아
-                <br />
-                일상에서 직접 겪는 불편함이나 필요를 앱으로 해결합니다.
-              </p>
-                <h3>💡 일상에서 영감 얻기</h3>
-              <p>
-                "이런 게 있으면 더 편리하지 않을까?"라는 생각에서 시작해
-                <br />
-                직접 써보고 싶은 앱을 만듭니다.
-              </p>
-              <h3>💬 소통하며 성장하기</h3>
-              <p>
-                사용자와 소통하며, 피드백을 반영해
-                <br />
-                더 나은 경험을 만들어갑니다.
-              </p>
-            </div>
-            <div className="about-stats">
-              <div className="stat">
-                <div className="stat-number">👨‍💻 + 🎨</div>
-                <div className="stat-label">malcolm & ralph</div>
-              </div>
-              <div className="stat">
-                <div className="stat-number">contact@malph.app</div>
-                <div className="stat-label">이메일 문의</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <nav className="home-nav">
+        <div className="nav-left">
+          <div
+            ref={weatherStatusRef}
+            className="weather-status-container"
+            style={{ position: 'relative' }}
+          >
+            Seoul, {weather.data ? (
+              <span
+                className="weather-status"
+                onClick={() => setIsWeatherModalOpen(!isWeatherModalOpen)}
+                onMouseEnter={() => setScrambleTrigger(prev => prev + 1)}
+              >
+                <ScrambleText
+                  text={weather.data.weather[0].main}
+                  trigger={entranceTrigger + scrambleTrigger}
+                />
+              </span>
+            ) : (
+              <span>Bzzzzzt...</span>
+            )}
 
-      <section id="projects" className="projects">
-        <div className="container">
-          <h2>malph의 앱</h2>
-          <div className="project-intro">
-            <p>
-              일상에서 직접 필요하다고 느낀 것들을 앱으로 만들어갑니다.
-            </p>
+            <AnimatePresence>
+              {isWeatherModalOpen && (
+                <motion.div
+                  className="weather-selector-modal"
+                  initial={{ opacity: 0, y: -16, x: 60 }}
+                  animate={{ opacity: 1, y: -8, x: 60 }}
+                  exit={{ opacity: 0, y: -16 }}
+                  transition={{ duration: 0.4, ease: 'easeOut' }}
+                >
+                  <div
+                    className={`weather-option ${selectedWeatherMode === 'Live' ? 'active' : ''}`}
+                    onClick={() => { setSelectedWeatherMode('Live'); setIsWeatherModalOpen(false); setSubText("How's where you are?"); }}
+                  >Live</div>
+                  <div className="weather-option" onClick={() => { setSelectedWeatherMode('Sunny'); setIsWeatherModalOpen(false); setSubText("How's where you are?"); }}>Sunny</div>
+                  <div className="weather-option" onClick={() => { setSelectedWeatherMode('Rainy'); setIsWeatherModalOpen(false); setSubText("How's where you are?"); }}>Rainy</div>
+                  <div className="weather-option" onClick={() => { setSelectedWeatherMode('Snow'); setIsWeatherModalOpen(false); setSubText("How's where you are?"); }}>Snowy</div>
+                  <div className="weather-option" onClick={() => { setSelectedWeatherMode('Fog'); setIsWeatherModalOpen(false); setSubText("How's where you are?"); }}>Cloudy</div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-          <div className="project-grid">
-            <Link to="/onerm_log" className="project-card featured" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="project-icon">🏋️</div>
-              <h3>onerm Log</h3>
-              <p>
-                <b>onerm Log</b>는 1RM(최대 1회 반복 무게) 기록을 기반으로
-                <br />
-                자신의 운동 능력을 계산하고, 성장 과정을 시각적으로 확인할 수 있는 앱입니다.
-                <br />
-                다양한 운동 종목별로 1RM을 자동 계산해주고,
-                <br />
-                기록을 쉽고 맛깔나게 관리할 수 있도록 도와줍니다.
-                <br />
-                운동 목표 설정, 그래프, 기록 히스토리 등
-                <br />
-                운동하는 사람에게 꼭 필요한 기능만 담았습니다.
-              </p>
-              <div className="project-tags">
-                <span className="tag">운동</span>
-                <span className="tag">기록</span>
-                <span className="tag">React Native</span>
-              </div>
-            </Link>
-            <div className="project-card coming-soon">
-              <div className="project-icon">💡</div>
-              <h3>다음 아이디어</h3>
-              <p>
-                새로운 일상 속 불편함을 발견하면,
-                <br />
-                또 하나의 앱이 탄생할지도 몰라요!
-              </p>
-              <div className="project-status">
-                <span className="status-badge thinking">구상중</span>
-              </div>
-            </div>
+          <div className="nav-left-sub">
+            {weather.data ? (
+              <>
+                <span>{Math.round(weather.data.main.temp)}°C</span>
+                <span>{weather.data.main.humidity}%</span>
+                <span>{weather.data.wind.speed}m/s</span>
+              </>
+            ) : (
+              <>
+                <span>Bzz</span>
+                <span>zzzz</span>
+                <span>zzzzt..</span>
+              </>
+            )}
           </div>
         </div>
-      </section>
+        <div className="nav-right">
+          <img
+            src={LogoS}
+            alt="X Logo"
+            style={{
+              // width: '0.8em',
+              height: '26px',
+              verticalAlign: 'middle',
+              display: 'inline-block',
+            }}
+          />
+        </div>
+      </nav>
+      <nav className="bottom-info">
+        <div className="bottom-info-left-group">
+          <div className="bottom-info-left">
+            <ScrambleText text="Korea" trigger={entranceTrigger} />
+          </div>
+          <div className="bottom-info-left">
+            <ScrambleText text="©2026 MARPH Works" trigger={entranceTrigger} />
+          </div>
+        </div>
+        <div className="bottom-info-center">
+          <ScrambleText text="Build Anything. Everything." trigger={entranceTrigger} />
+        </div>
+        <div className="bottom-info-right-group">
+          <a
+            href="mailto:contact@malph.app"
+            className="bottom-info-right bottom-info-link-regular"
+            style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
+          >
+            Say Hi
+          </a>
+          <div className="bottom-info-right-dash"></div>
+          <a
+            href="mailto:contact@malph.app"
+            className="bottom-info-right bottom-info-link"
+            onMouseEnter={() => setKnockTrigger(prev => prev + 1)}
+            style={{ width: '156px', textAlign: 'left', textDecoration: 'none', color: 'inherit', display: 'inline-block' }}
+          >
+            <ScrambleText text="Knock on MARPH Works" trigger={entranceTrigger + knockTrigger} />
+          </a>
+        </div>
+      </nav>
 
-      <section className="contact">
-        <div className="container">
-          <div className="contact-content">
-            <h2>함께 만들어요! 🤝</h2>
-            <p>
-              좋은 아이디어가 있거나, 협업을 원하신다면
-              <br />
-              언제든지 이메일로 연락해주세요!
-            </p>
-            <div className="contact-methods">
-              <a href="mailto:contact@malph.app" className="contact-btn">
-                📧 contact@malph.app
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
+      <GridBackground weatherMode={displayWeatherMode} />
+      <TextTicker subText={subText} setSubText={setSubText} />
+
+      {/* Weather data will be used for design in next steps */}
+      {weather.loading && <div style={{ display: 'none' }}>Loading weather...</div>}
+      {weather.error && <div style={{ display: 'none' }}>Error: {weather.error}</div>}
+      {weather.data && <div style={{ display: 'none' }}>Weather loaded: {weather.data.name}</div>}
     </div>
   )
 }

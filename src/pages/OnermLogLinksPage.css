@@ -1,36 +1,56 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+
 .onerm-log-links-page {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 60vh;
+  min-height: 100vh;
   padding: 2rem;
-  background-color: var(--background-color, #f9f9f9);
+  background-color: var(--background-color, #D8DEEA);
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
 }
 
 .links-container {
   max-width: 400px;
   width: 100%;
   text-align: center;
-  background: white;
-  padding: 3rem 2rem;
-  border-radius: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  background: #111;
+  padding: 60px 34px 40px 34px;
+  border-radius: 40px;
 }
 
 .links-header {
-  margin-bottom: 2.5rem;
+  margin-bottom: 54px;
 }
 
 .links-header .app-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
+  width: 220px;
+  height: 220px;
+  margin: 0 auto 16px;
+  background-color: #111111;
+  /* border-radius: 20px; */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
-.links-header h1 {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-  color: #333;
+.logo-image {
+  width: 90px;
+  height: auto;
+  margin: 0px auto;
+  display: block;
+  fill: #fff;
+}
+
+.sub-text {
+  font-size: 18px;
+  margin-bottom: 20px;
+  color: #fff;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: 400;
+  line-height: 1.4;
 }
 
 .links-header p {
@@ -41,42 +61,52 @@
 
 .download-buttons-vertical {
   display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
+  flex-direction: row; /* 가로 방향 배치 */
+  gap: 8px;           /* 버튼 사이 간격 (6px보다 조금 넓은 게 가로에선 예뻐요) */
+  width: 100%;
+  margin-bottom: 24px;
 }
 
 .download-link {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.8rem 1.5rem;
+  /* padding: 0.8rem 1.5rem; */
   border-radius: 12px;
   text-decoration: none;
   color: white;
-  transition: transform 0.2s, opacity 0.2s;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* transition: transform 0.2s, opacity 0.2s; */
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  height: 54px;
+  flex: 1;
 }
 
-.download-link:hover {
+/* .download-link:hover {
   transform: translateY(-2px);
   opacity: 0.9;
-}
+} */
 
 .download-link:active {
   transform: translateY(0);
 }
 
 .download-link.ios {
-  background-color: #000;
+  /* background-color: #000; */
+  border: 1px solid #444;
+  /* border-width: 1px; */
+  border-radius: 0px;
 }
 
 .download-link.android {
-  background-color: #000; /* Google Play also uses black often for these buttons */
+   /* background-color: #000; */
+  border: 1px solid #444;
+  /* border-width: 1px; */
+  border-radius: 0px;
 }
 
 .download-link .icon {
-  font-size: 1.8rem;
-  margin-right: 12px;
+  font-size: 14px;
+  margin-right: 8px;
 }
 
 .download-link .text {
@@ -84,27 +114,36 @@
   flex-direction: column;
   align-items: flex-start;
   line-height: 1.2;
+  font-size: 15px;
+  font-weight: 400;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-.download-link .small {
+/* .download-link .small {
   font-size: 0.7rem;
   font-weight: 400;
   text-transform: uppercase;
 }
 
 .download-link .large {
-  font-size: 1.2rem;
-  font-weight: 600;
-}
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0px;
+} */
 
 @media (max-width: 480px) {
   .onerm-log-links-page {
     padding: 1rem;
+    background-color: var(--background-color, #111);
   }
   
   .links-container {
     padding: 2rem 1.5rem;
     box-shadow: none;
-    background: transparent;
+    /* background: transparent; */
   }
+}
+.links-header .app-icon {
+  width: 200px;
+  height: 200px;
 }

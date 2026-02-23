@@ -1,5 +1,8 @@
 import React, { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
+import Lottie from 'lottie-react'
+import splashIcon from '../assets/lottie/splash_icon.json'
+import shareTextLogo from '../assets/share_text_logo.svg'
 import './OnermLogLinksPage.css'
 
 const OnermLogLinksPage: React.FC = () => {
@@ -40,9 +43,14 @@ const OnermLogLinksPage: React.FC = () => {
     <div className="onerm-log-links-page">
       <div className="links-container">
         <div className="links-header">
-          <div className="app-icon">💪</div>
-          <h1>oneRM Log</h1>
-          <p>지금 바로 다운로드하고 운동 기록을 시작하세요!</p>
+          <div className="app-icon">
+            <Lottie 
+              animationData={splashIcon} 
+              loop={true}
+              style={{ width: '100%', height: '100%' }}
+            />
+          </div>
+          <div className="sub-text">잠시만 기다려주세요<br />마켓으로 이동중!</div>
         </div>
         <div className="download-buttons-vertical">
           <a 
@@ -51,10 +59,9 @@ const OnermLogLinksPage: React.FC = () => {
             target="_blank" 
             rel="noopener noreferrer"
           >
-            <span className="icon">🍎</span>
+            {/* <span className="icon">🍎</span> */}
             <div className="text">
-              <span className="small">Download on the</span>
-              <span className="large">App Store</span>
+              <span className="large">앱스토어</span>
             </div>
           </a>
           <a 
@@ -63,13 +70,13 @@ const OnermLogLinksPage: React.FC = () => {
             target="_blank" 
             rel="noopener noreferrer"
           >
-            <span className="icon">🤖</span>
+            {/* <span className="icon">🤖</span> */}
             <div className="text">
-              <span className="small">GET IT ON</span>
-              <span className="large">Google Play</span>
+              <span className="large">플레이스토어</span>
             </div>
           </a>
         </div>
+        <img src={shareTextLogo} alt="1RM LOG" className="logo-image" />
       </div>
     </div>
   )
